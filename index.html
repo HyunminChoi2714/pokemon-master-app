@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>포켓몬 마스터 키우기</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <div class="trainer-info">
+      <h2>포켓몬 마스터</h2>
+      <span class="rank-badge" id="playerRank">Z-랭크 트레이너</span>
+    </div>
+    <div class="resources">
+      <div class="res-item">🪙 <span id="goldAmount">1,000</span> Gold</div>
+      <div class="res-item">💎 <span id="gemAmount">100</span> Gem</div>
+      <div class="res-item">🍬 <span id="candyAmount">50</span> Candy</div>
+    </div>
+  </header>
+
+  <main>
+    <nav>
+      <button class="nav-btn active" onclick="switchTab('party', event)">🎒 파티/엔트리</button>
+      <button class="nav-btn" onclick="switchTab('gym', event)">⚔️ 체육관(랭크전)</button>
+      <button class="nav-btn" onclick="switchTab('mart', event)">🛒 프렌들리숍</button>
+      <button class="nav-btn" onclick="switchTab('center', event)">🏥 포켓몬 센터</button>
+      <button class="nav-btn" onclick="switchTab('daycare', event)">🏕️ 키우미집</button>
+      <button class="nav-btn" onclick="switchTab('lab', event)">🔬 연구소(채용)</button>
+      <button class="nav-btn" onclick="switchTab('dex', event)">📖 전국 도감</button>
+    </nav>
+
+    <!-- 탭별 콘텐츠 영역 -->
+    <div id="tab-party" class="facility-panel active">
+      <div class="buff-panel">
+        <span class="buff-title">파티 시너지 & 도감 부수 효과:</span>
+        <div class="buff-list" id="activeBuffList"></div>
+      </div>
+      <div class="squad-container">
+        <div class="squad-section">
+          <h3>🛡️ 전방 라인</h3>
+          <div class="squad-slots" id="frontSlots"></div>
+        </div>
+        <div class="squad-section">
+          <h3>⚔️ 후방 라인</h3>
+          <div class="squad-slots" id="backSlots"></div>
+        </div>
+      </div>
+      <h3 style="margin-bottom:10px;">보유 포켓몬 목록</h3>
+      <div class="poke-grid" id="inventoryGrid"></div>
+    </div>
+
+    <div id="tab-gym" class="facility-panel">
+      <div class="battle-field">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 id="stageTitle">Z-랭크 1단계 관장 도전전</h3>
+          <span id="rankProgress">승급 포인트: 0 / 100</span>
+        </div>
+        <div class="arena-display">
+          <div class="team-side" id="playerBattleSide"></div>
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent-yellow);">VS</div>
+          <div class="team-side" id="enemyBattleSide"></div>
+        </div>
+        <button class="action-btn" id="startBattleBtn" onclick="startBattle()">⚔️ 승급 배틀 시작</button>
+        <div class="battle-log" id="battleLog"></div>
+      </div>
+    </div>
+
+    <div id="tab-mart" class="facility-panel">
+      <h3>🛒 포켓몬 프렌들리숍 (상점)</h3>
+      <div class="shop-grid" id="shopGrid"></div>
+    </div>
+
+    <div id="tab-center" class="facility-panel">
+      <h3>🏥 포켓몬 센터</h3>
+      <button class="action-btn" style="background:var(--accent-green);" onclick="healAllPokemon()">💖 전체 포켓몬 완치</button>
+    </div>
+
+    <div id="tab-daycare" class="facility-panel">
+      <h3>🏕️ 키우미집 & 훈련소</h3>
+      <div class="poke-grid" id="daycareGrid"></div>
+    </div>
+
+    <div id="tab-lab" class="facility-panel">
+      <h3>🔬 오박사 연구소</h3>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="action-btn" style="background:var(--accent-blue);" onclick="summonPokemon(1)">🎲 1회 채용 (10 Gem)</button>
+        <button class="action-btn" style="background:var(--accent-yellow); color:black;" onclick="summonPokemon(10)">🎲 10회 연속 채용 (100 Gem)</button>
+      </div>
+    </div>
+
+    <div id="tab-dex" class="facility-panel">
+      <h3>📖 전국 포켓몬 도감</h3>
+      <p id="dexProgressText">도감 수집 진행도: 0 / 123</p>
+      <div class="region-grid" id="regionGrid"></div>
+      <div class="poke-grid" id="pokedexGrid"></div>
+    </div>
+  </main>
+
+  <!-- 데이터 및 스크립트 모듈 로드 -->
+  <script src="src/data/moves.js"></script>
+  <script src="src/data/pokemon.js"></script>
+  <script src="src/data/shop.js"></script>
+  <script src="src/engine/state.js"></script>
+  <script src="src/engine/battle.js"></script>
+  <script src="src/engine/ui.js"></script>
+</body>
+</html>

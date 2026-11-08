@@ -1,0 +1,328 @@
+/**
+ * style.css - 포켓몬 마스터 키우기 전용 스타일시트
+ */
+
+:root {
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --card-bg: #0f3460;
+  --accent-red: #e94560;
+  --accent-yellow: #f39c12;
+  --accent-green: #2ecc71;
+  --accent-blue: #3498db;
+  --accent-purple: #9b59b6;
+  --text-main: #ffffff;
+  --text-sub: #b2bec3;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ==========================================
+ * 헤더 및 재화 바 (Header & Resources)
+ * ========================================== */
+header {
+  background-color: var(--bg-secondary);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--accent-red);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trainer-info {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.rank-badge {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.resources {
+  display: flex;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.res-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+/* ==========================================
+ * 메인 레이아웃 및 네비게이션 (Nav & Layout)
+ * ========================================== */
+main {
+  flex: 1;
+  padding: 15px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+nav {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.nav-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--card-bg);
+  color: var(--text-sub);
+  padding: 10px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  font-weight: bold;
+  font-size: 0.82rem;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover,
+.nav-btn.active {
+  background: var(--accent-red);
+  color: white;
+  border-color: var(--accent-red);
+}
+
+.facility-panel {
+  display: none;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 20px;
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.facility-panel.active {
+  display: block;
+}
+
+/* ==========================================
+ * 파티 / 엔트리 스쿼드 (Squad & Party)
+ * ========================================== */
+.squad-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.squad-section {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 15px;
+}
+
+.squad-section h3 {
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+  color: var(--accent-yellow);
+  display: flex;
+  justify-content: space-between;
+}
+
+.squad-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.slot {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  padding: 8px;
+  transition: border-color 0.2s;
+}
+
+.slot.occupied {
+  border: 2px solid var(--accent-blue);
+  background: rgba(52, 152, 219, 0.15);
+}
+
+.slot-poke-name {
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* ==========================================
+ * 버프 및 패시브 패널 (Buff Panel)
+ * ========================================== */
+.buff-panel {
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid var(--accent-green);
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.buff-title {
+  font-weight: bold;
+  color: var(--accent-green);
+  font-size: 0.85rem;
+}
+
+.buff-list {
+  display: flex;
+  gap: 8px;
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.buff-tag {
+  background: var(--accent-green);
+  color: black;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.passive-tag {
+  background: var(--accent-yellow);
+  color: black;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* ==========================================
+ * 포켓몬 그리드 & 카드 (Pokemon Cards)
+ * ========================================== */
+.poke-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.poke-card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.poke-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-yellow);
+}
+
+.poke-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin: 0 auto 5px auto;
+  display: block;
+}
+
+.poke-stats {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  margin-top: 3px;
+}
+
+.poke-moves-tag {
+  font-size: 0.7rem;
+  color: #f1c40f;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-top: 4px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stage-badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
+/* ==========================================
+ * 상점 카드 레이아웃 (Shop Section)
+ * ========================================== */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.shop-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.shop-icon {
+  font-size: 2.2rem;
+}
+
+.shop-name {
+  font-weight: bold;
+  font-size: 1rem;
+  color: var(--accent-yellow);
+}
+
+.shop-desc {
+  font-size: 0
