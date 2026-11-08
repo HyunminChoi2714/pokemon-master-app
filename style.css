@@ -579,3 +579,197 @@ nav {
 .sk-next-btn:hover {
   filter: brightness(1.1);
 }
+
+/* ==========================================
+ * 포켓몬 상세 정보 모달 & 육각형 레이더 그래프
+ * ========================================== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-content {
+  background: #16213e;
+  border: 2px solid var(--accent-yellow);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background: #0f3460;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-poke-img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  padding: 4px;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.8rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .modal-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-stat-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.canvas-wrapper {
+  position: relative;
+  width: 260px;
+  height: 240px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.iv-judge-summary {
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 14px;
+  border-radius: 15px;
+  border: 1px solid var(--accent-yellow);
+}
+
+.modal-moves-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.move-card {
+  background: #0f3460;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.move-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.move-card-name {
+  font-weight: bold;
+  font-size: 0.85rem;
+  color: #ffffff;
+}
+
+.move-card-detail {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  display: flex;
+  justify-content: space-between;
+}
+
+.type-badge {
+  font-size: 0.68rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  background: #555;
+}
+
+/* 타입 색상 배지 */
+.type-노말 { background: #a8a878; }
+.type-불꽃 { background: #f08030; }
+.type-물 { background: #6890f0; }
+.type-풀 { background: #78c850; }
+.type-전기 { background: #f8d030; color: #000; }
+.type-얼음 { background: #98d8d8; color: #000; }
+.type-격투 { background: #c03028; }
+.type-독 { background: #a040a0; }
+.type-땅 { background: #e0c068; color: #000; }
+.type-비행 { background: #a890f0; }
+.type-에스퍼 { background: #f85888; }
+.type-벌레 { background: #a8b820; }
+.type-바위 { background: #b8a038; }
+.type-고스트 { background: #70559b; }
+.type-드래곤 { background: #7038f8; }
+.type-악 { background: #705848; }
+.type-강철 { background: #b8b8d0; color: #000; }
+.type-페어리 { background: #ee99ac; color: #000; }
+
+.modal-stats-table {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.stat-row-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 5px 8px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+.stat-row-name { color: var(--text-sub); }
+.stat-row-val { font-weight: bold; color: #fff; }
+.stat-row-iv { font-size: 0.72rem; font-weight: bold; color: var(--accent-yellow); }

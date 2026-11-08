@@ -111,6 +111,44 @@
     </div>
   </main>
 
+  <!-- 포켓몬 상세 정보 모달 (육각형 스탯 그래프 & 기술 4종) -->
+  <div id="pokeDetailModal" class="modal-overlay" onclick="closePokemonDetail(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <img id="modalPokeImg" src="" alt="" class="modal-poke-img" />
+          <div>
+            <h2 id="modalPokeName">이상해씨</h2>
+            <div id="modalPokeTypes" class="type-badge-group"></div>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closePokemonDetail()">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 좌측: 육각형 스탯 레이더 그래프 & IV 평가 -->
+        <div class="modal-stat-section">
+          <h3>📊 능력치 & 개체값(IV)</h3>
+          <div class="canvas-wrapper">
+            <canvas id="statHexCanvas" width="280" height="260"></canvas>
+          </div>
+          <div class="iv-judge-summary" id="modalIvJudgeSummary">
+            총합 평가: <span id="modalOverallJudge" style="color:var(--accent-yellow);">훌륭한 능력!</span>
+          </div>
+        </div>
+
+        <!-- 우측: 6개 세부 스탯 수치표 & 기술 4종 -->
+        <div class="modal-info-section">
+          <h3>⚔️ 현재 장착 기술 (4개)</h3>
+          <div class="modal-moves-grid" id="modalMovesGrid"></div>
+
+          <h3 style="margin-top: 15px;">📋 세부 능력치</h3>
+          <div class="modal-stats-table" id="modalStatsTable"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 데이터 및 스크립트 모듈 로드 -->
   <script src="src/data/moves.js"></script>
   <script src="src/data/pokemon.js"></script>

@@ -33,14 +33,34 @@ function updatePokemonMoves(poke) {
   poke.moves = availableMoves.slice(-4);
 }
 
+/**
+ * 포켓몬 인스턴스 생성 (6종 스탯 & 6종 IV 세분화)
+ */
 function createPokemonInstance(templateId, level = 1) {
   const template = (typeof POKEMON_DB !== 'undefined' && POKEMON_DB.find(p => p.id === templateId)) || {
-    id: 1, name: "이상해씨", type1: "풀", type2: "독", stage: 1, hp: 45, atk: 49, def: 49, spd: 45, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
+    id: 1, name: "이상해씨", type1: "풀", type2: "독", stage: 1, hp: 45, atk: 49, def: 49, spAtk: 65, spDef: 65, spd: 45, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
   };
-  const iv = Math.floor(Math.random() * 32);
-  
-  const maxHp = Math.floor(((template.hp * 2 + iv) * level) / 100) + level + 10;
-  
+
+  // 6종 개체값 (0~31) 무작위 생성
+  const ivs = {
+    hp: Math.floor(Math.random() * 32),
+    atk: Math.floor(Math.random() * 32),
+    def: Math.floor(Math.random() * 32),
+    spAtk: Math.floor(Math.random() * 32),
+    spDef: Math.floor(Math.random() * 32),
+    spd: Math.floor(Math.random() * 32)
+  };
+
+  const baseSpAtk = template.spAtk || template.atk;
+  const baseSpDef = template.spDef || template.def;
+
+  const maxHp = Math.floor(((template.hp * 2 + ivs.hp) * level) / 100) + level + 10;
+  const atk = Math.floor(((template.atk * 2 + ivs.atk) * level) / 100) + 5;
+  const def = Math.floor(((template.def * 2 + ivs.def) * level) / 100) + 5;
+  const spAtk = Math.floor(((baseSpAtk * 2 + ivs.spAtk) * level) / 100) + 5;
+  const spDef = Math.floor(((baseSpDef * 2 + ivs.spDef) * level) / 100) + 5;
+  const spd = Math.floor(((template.spd * 2 + ivs.spd) * level) / 100) + 5;
+
   const instance = {
     uid: 'poke_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     id: template.id,
@@ -49,12 +69,14 @@ function createPokemonInstance(templateId, level = 1) {
     type2: template.type2,
     stage: template.stage,
     level: level,
-    iv: iv,
+    ivs: ivs,
     maxHp: maxHp,
     currentHp: maxHp,
-    atk: Math.floor(((template.atk * 2 + iv) * level) / 100) + 5,
-    def: Math.floor(((template.def * 2 + iv) * level) / 100) + 5,
-    spd: Math.floor(((template.spd * 2 + iv) * level) / 100) + 5,
+    atk: atk,
+    def: def,
+    spAtk: spAtk,
+    spDef: spDef,
+    spd: spd,
     img: template.img,
     moves: []
   };

@@ -320,3 +320,179 @@ document.addEventListener('DOMContentLoaded', function() {
     initGame();
   }
 });
+
+/**
+ * 개체값(IV) 텍스트 판정 변환 함수 (포켓몬 본가 심사위원 멘트)
+ */
+function getIvGradeText(iv) {
+  if (iv === 31) return { text: "최고!", color: "#2ecc71" };
+  if (iv >= 30) return { text: "훌륭하다", color: "#3498db" };
+  if (iv >= 26) return { text: "잘함", color: "#f39c12" };
+  if (iv >= 16) return { text: "보통", color: "#e67e22" };
+  return { text: "별로", color: "#e74c3c" };
+}
+
+/**
+ * 포켓몬 상세 정보 모달 열기
+ */
+function openPokemonDetail(uid) {
+  const poke = gameState.inventory.find(p => p.uid === uid);
+  if (!poke) return;
+
+  const modal = document.getElementById('pokeDetailModal');
+  const imgEl = document.getElementById('modalPokeImg');
+  const nameEl = document.getElementById('modalPokeName');
+  const typesEl = document.getElementById('modalPokeTypes');
+  const movesGrid = document.getElementById('modalMovesGrid');
+  const statsTable = document.getElementById('modalStatsTable');
+  const summaryEl = document.getElementById('modalOverallJudge');
+
+  imgEl.src = poke.img;
+  nameEl.innerText = `${poke.name} (Lv.${poke.level})`;
+  typesEl.innerHTML = `
+    <span class="type-badge type-${poke.type1}">${poke.type1}</span>
+    ${poke.type2 ? `<span class="type-badge type-${poke.type2}">${poke.type2}</span>` : ''}
+  `;
+
+  // 기술 4종 카드 출력
+  movesGrid.innerHTML = poke.moves.map(mName => {
+    const move = (typeof MOVES_DB !== 'undefined' && MOVES_DB[mName]) || { name: mName, type: poke.type1, category: "물리", power: 40, accuracy: 100 };
+    return `
+      <div class="move-card">
+        <div class="move-card-header">
+          <span class="move-card-name">${move.name}</span>
+          <span class="type-badge type-${move.type}">${move.type}</span>
+        </div>
+        <div class="move-card-detail">
+          <span>${move.category}</span>
+          <span>위력: ${move.power || '-'} | 명중: ${move.accuracy || '-'}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 6개 세부 스탯 및 개체값 판정표 출력
+  const ivs = poke.ivs || { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spd: 15 };
+  const statList = [
+    { name: "HP", val: poke.maxHp, iv: ivs.hp },
+    { name: "공격", val: poke.atk, iv: ivs.atk },
+    { name: "방어", val: poke.def, iv: ivs.def },
+    { name: "스피드", val: poke.spd, iv: ivs.spd },
+    { name: "특수방어", val: poke.spDef || poke.def, iv: ivs.spDef },
+    { name: "특수공격", val: poke.spAtk || poke.atk, iv: ivs.spAtk }
+  ];
+
+  statsTable.innerHTML = statList.map(s => {
+    const grade = getIvGradeText(s.iv);
+    return `
+      <div class="stat-row-item">
+        <span class="stat-row-name">${s.name}:</span>
+        <span class="stat-row-val">${s.val}</span>
+        <span class="stat-row-iv" style="color:${grade.color};">[${grade.text}]</span>
+      </div>
+    `;
+  }).join('');
+
+  // 개체값 총점 평가
+  const ivSum = Object.values(ivs).reduce((a, b) => a + b, 0);
+  if (ivSum >= 151) summaryEl.innerText = "🌟 훌륭한 능력!";
+  else if (ivSum >= 121) summaryEl.innerText = "✨ 상당한 능력!";
+  else if (ivSum >= 91) summaryEl.innerText = "👍 평균 이상의 능력!";
+  else summaryEl.innerText = "🌱 성장 가능성이 있는 능력!";
+
+  // 캔버스 육각형 레이더 그래프 그리기
+  const canvas = document.getElementById('statHexCanvas');
+  drawHexagonChart(canvas, statList);
+
+  modal.classList.add('active');
+}
+
+/**
+ * 포켓몬 상세 정보 모달 닫기
+ */
+function closePokemonDetail(evt) {
+  if (evt && evt.target && !evt.target.classList.contains('modal-overlay') && !evt.target.classList.contains('modal-close-btn')) return;
+  const modal = document.getElementById('pokeDetailModal');
+  if (modal) modal.classList.remove('active');
+}
+
+/**
+ * HTML5 Canvas 6축 육각형 레이더 그래프 렌더링 함수
+ */
+function drawHexagonChart(canvas, statList) {
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2 + 5;
+  const radius = 80;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // 6축 각도 (12시 방향 HP부터 시계 방향 순서)
+  const angles = [
+    -Math.PI / 2,         // HP (상단)
+    -Math.PI / 6,         // 공격 (우상단)
+    Math.PI / 6,          // 방어 (우하단)
+    Math.PI / 2,          // 스피드 (하단)
+    (5 * Math.PI) / 6,    // 특수방어 (좌하단)
+    (-5 * Math.PI) / 6    // 특수공격 (좌상단)
+  ];
+
+  // 1. 그리드 베이스 육각형 (3단계)
+  [0.33, 0.66, 1.0].forEach(scale => {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const x = centerX + radius * scale * Math.cos(angles[i]);
+      const y = centerY + radius * scale * Math.sin(angles[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = scale === 1.0 ? 'rgba(243, 156, 18, 0.6)' : 'rgba(255, 255, 255, 0.15)';
+    ctx.lineWidth = scale === 1.0 ? 2 : 1;
+    ctx.fillStyle = scale === 1.0 ? 'rgba(46, 204, 113, 0.08)' : 'transparent';
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  // 2. 중심 축선 그리기
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(centerX + radius * Math.cos(angles[i]), centerY + radius * Math.sin(angles[i]));
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.stroke();
+  }
+
+  // 3. 실측 IV 데이터 파란색 다각형 폴리곤 그리기 (개체값 0~31 스케일링)
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const ivRatio = Math.max(0.15, statList[i].iv / 31);
+    const x = centerX + radius * ivRatio * Math.cos(angles[i]);
+    const y = centerY + radius * ivRatio * Math.sin(angles[i]);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(52, 152, 219, 0.55)';
+  ctx.fill();
+  ctx.strokeStyle = '#3498db';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // 4. 라벨 및 텍스트 표시
+  ctx.font = 'bold 11px Pretendard, sans-serif';
+  ctx.textAlign = 'center';
+
+  for (let i = 0; i < 6; i++) {
+    const labelRadius = radius + 22;
+    const x = centerX + labelRadius * Math.cos(angles[i]);
+    const y = centerY + labelRadius * Math.sin(angles[i]) + 4;
+
+    ctx.fillStyle = '#f39c12';
+    ctx.fillText(statList[i].name, x, y - 6);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(statList[i].val, x, y + 7);
+  }
+}
