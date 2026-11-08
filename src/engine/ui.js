@@ -254,30 +254,63 @@ function renderPokedex() {
 /**
  * 배틀 아레나 UI 렌더링
  */
+/**
+ * 세븐나이츠 스타일 배틀 아레나 UI 렌더링 (머리 위 부유형 HP바 + 반전 스프라이트)
+ * @param {Array} playerTeam - 플레이어 파티
+ * @param {Array} enemyTeam - 관장 포켓몬 파티
+ */
 function renderBattleArena(playerTeam, enemyTeam) {
   const pSide = document.getElementById('playerBattleSide');
   const eSide = document.getElementById('enemyBattleSide');
   if (!pSide || !eSide) return;
 
-  pSide.innerHTML = playerTeam.map(p => `
-    <div class="battle-poke-unit">
-      <img src="${p.img}" width="34" alt="${p.name}"/>
-      <div style="flex:1; margin-left:6px;">
-        <div style="font-size:0.75rem; font-weight:bold;">${p.name}</div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${(p.currentHp / p.maxHp) * 100}%"></div></div>
-      </div>
-    </div>
-  `).join('');
+  // 아군 파티 렌더링 (좌측)
+  pSide.innerHTML = playerTeam.map(p => {
+    const isFainted = p.currentHp <= 0;
+    const hpPct = Math.max(0, Math.min(100, (p.currentHp / p.maxHp) * 100));
 
-  eSide.innerHTML = enemyTeam.map(e => `
-    <div class="battle-poke-unit">
-      <div style="flex:1; margin-right:6px; text-align:right;">
-        <div style="font-size:0.75rem; font-weight:bold;">${e.name}</div>
-        <div class="hp-bar-bg"><div class="hp-bar-fill" style="width:${(e.currentHp / e.maxHp) * 100}%; background:var(--accent-red);"></div></div>
+    return `
+      <div class="sk-unit ${isFainted ? 'fainted' : ''}">
+        <div class="sk-hp-badge">
+          <div class="sk-unit-info">
+            <span class="sk-unit-lvl">Lv.${p.level}</span>
+            <span class="sk-unit-name">${p.name}</span>
+          </div>
+          <div class="sk-hp-bg">
+            <div class="sk-hp-fill" style="width:${hpPct}%;"></div>
+          </div>
+        </div>
+        <div class="sk-sprite-wrapper">
+          <img src="${p.img}" class="sk-sprite" alt="${p.name}" />
+          <div class="sk-shadow"></div>
+        </div>
       </div>
-      <img src="${e.img}" width="34" alt="${e.name}"/>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+
+  // 적군 파티 렌더링 (우측 - 좌우 반전 이미지 적용)
+  eSide.innerHTML = enemyTeam.map(e => {
+    const isFainted = e.currentHp <= 0;
+    const hpPct = Math.max(0, Math.min(100, (e.currentHp / e.maxHp) * 100));
+
+    return `
+      <div class="sk-unit enemy ${isFainted ? 'fainted' : ''}">
+        <div class="sk-hp-badge">
+          <div class="sk-unit-info">
+            <span class="sk-unit-lvl">Lv.${e.level}</span>
+            <span class="sk-unit-name">${e.name}</span>
+          </div>
+          <div class="sk-hp-bg">
+            <div class="sk-hp-fill enemy" style="width:${hpPct}%;"></div>
+          </div>
+        </div>
+        <div class="sk-sprite-wrapper">
+          <img src="${e.img}" class="sk-sprite flip" alt="${e.name}" />
+          <div class="sk-shadow"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // DOM 생성이 완료되는 즉시 게임 데이터 및 UI 초기화
