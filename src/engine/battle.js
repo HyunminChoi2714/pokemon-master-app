@@ -17,6 +17,9 @@ function sleep(ms) {
 /**
  * 승급 배틀 시작 함수
  */
+/**
+ * 승급 배틀 시작 함수 (랭크별 적 난이도 조정)
+ */
 function startBattle() {
   // 포켓몬 센터 자동 치료
   gameState.inventory.forEach(p => p.currentHp = p.maxHp);
@@ -29,14 +32,34 @@ function startBattle() {
     return;
   }
 
-  const enemyTeam = [
-    createPokemonInstance(25, 7),
-    createPokemonInstance(4, 7),
-    createPokemonInstance(7, 7),
-    createPokemonInstance(152, 7),
-    createPokemonInstance(155, 7),
-    createPokemonInstance(158, 7)
-  ];
+  // 랭크별 적 관장 파티 인원 및 레벨 밸런스 조정
+  let enemyTeam = [];
+  const currentRank = gameState.player.rank || "Z";
+
+  if (currentRank === "Z") {
+    // 💡 Z-랭크 초반 난이도 완치: Lv.5 관장 포켓몬 2마리 배치 (피카츄, 꼬부기)
+    enemyTeam = [
+      createPokemonInstance(25, 5), // 피카츄 (Lv.5)
+      createPokemonInstance(7, 5)   // 꼬부기 (Lv.5)
+    ];
+  } else if (currentRank === "Y") {
+    // Y-랭크: 3마리 배치 (Lv.8)
+    enemyTeam = [
+      createPokemonInstance(25, 8),
+      createPokemonInstance(4, 8),
+      createPokemonInstance(7, 8)
+    ];
+  } else {
+    // 상위 랭크: 6마리 풀 엔트리 (Lv.12 이상)
+    enemyTeam = [
+      createPokemonInstance(25, 12),
+      createPokemonInstance(4, 12),
+      createPokemonInstance(7, 12),
+      createPokemonInstance(152, 12),
+      createPokemonInstance(155, 12),
+      createPokemonInstance(158, 12)
+    ];
+  }
 
   battleState.active = true;
   battleState.isProcessing = false;
@@ -51,7 +74,7 @@ function startBattle() {
   nextBtn.innerText = `다음 턴 (${battleState.round}턴) ➡️`;
 
   renderBattleArena(playerTeam, enemyTeam);
-  setDialogueText("⚔️ 승급 배틀이 시작되었습니다! <b>'다음 턴'</b> 버튼을 누르면 1턴 동안 모든 포켓몬이 순서대로 공격합니다.");
+  setDialogueText("⚔️ Z-랭크 관장 도전 배틀이 시작되었습니다! (적 관장 2마리 대면)");
 }
 
 /**

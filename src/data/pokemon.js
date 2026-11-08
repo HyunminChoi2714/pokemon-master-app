@@ -38,16 +38,100 @@ const POKEMON_DB = [
   { id: 912, name: "꾸꾸아", type1: "물", type2: null, hp: 55, atk: 65, def: 45, spAtk: 50, spDef: 45, spd: 50, stage: 1, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/912.png" }
 ];
 
-// 포켓몬 진화 트리 지도 (EVOLUTION_MAP)
+// 본가 포켓몬 레벨 스탯을 반영한 진화 데이터베이스 (EVOLUTION_MAP)
 const EVOLUTION_MAP = {
-  1: { nextId: 2, minLevel: 10 },
-  2: { nextId: 3, minLevel: 20 },
-  4: { nextId: 5, minLevel: 10 },
-  5: { nextId: 6, minLevel: 20 },
-  7: { nextId: 8, minLevel: 10 },
-  8: { nextId: 9, minLevel: 20 }
-};
+  // --- 1세대 관동 스타팅 ---
+  1: { nextId: 2, minLevel: 16 },   // 이상해씨 -> 이상해풀
+  2: { nextId: 3, minLevel: 32 },   // 이상해풀 -> 이상해꽃
+  4: { nextId: 5, minLevel: 16 },   // 파이리 -> 리자드
+  5: { nextId: 6, minLevel: 36 },   // 리자드 -> 리자몽
+  7: { nextId: 8, minLevel: 16 },   // 꼬부기 -> 어니부기
+  8: { nextId: 9, minLevel: 36 },   // 어니부기 -> 거북왕
 
+  // --- 초반 벌레/새 포켓몬 (빠른 진화) ---
+  10: { nextId: 11, minLevel: 7 },  // 캐터피 -> 단데기
+  11: { nextId: 12, minLevel: 10 }, // 단데기 -> 버터플
+  13: { nextId: 14, minLevel: 7 },  // 뿔충이 -> 딱충이
+  14: { nextId: 15, minLevel: 10 }, // 딱충이 -> 독침붕
+  16: { nextId: 17, minLevel: 18 }, // 구구 -> 피전트
+  17: { nextId: 18, minLevel: 36 }, // 피전트 -> 피전투
+
+  // --- 일반 2단계 진화계 ---
+  19: { nextId: 20, minLevel: 20 }, // 꼬렛 -> 레트라
+  21: { nextId: 22, minLevel: 20 }, // 깨비참 -> 깨비드릴조
+  23: { nextId: 24, minLevel: 22 }, // 아보 -> 아보크
+  27: { nextId: 28, minLevel: 22 }, // 모래두지 -> 고지
+  29: { nextId: 30, minLevel: 16 }, // 니드런♀ -> 니드리나
+  32: { nextId: 33, minLevel: 16 }, // 니드런♂ -> 니드리노
+  41: { nextId: 42, minLevel: 22 }, // 주뱃 -> 골뱃
+  43: { nextId: 44, minLevel: 21 }, // 뚜벅쵸 -> 냄새꼬
+  46: { nextId: 47, minLevel: 24 }, // 파라스 -> 파라섹트
+  48: { nextId: 49, minLevel: 31 }, // 콘팡 -> 도나리
+  50: { nextId: 51, minLevel: 26 }, // 디그다 -> 닥트리오
+  52: { nextId: 53, minLevel: 28 }, // 나옹 -> 페르시온
+  54: { nextId: 55, minLevel: 33 }, // 고라파덕 -> 골덕
+  56: { nextId: 57, minLevel: 28 }, // 망키 -> 성원숭
+  60: { nextId: 61, minLevel: 25 }, // 올챙이 -> 수륙챙이
+  63: { nextId: 64, minLevel: 16 }, // 캐이시 -> 윤겔라
+  66: { nextId: 67, minLevel: 28 }, // 알통몬 -> 근육몬
+  69: { nextId: 70, minLevel: 21 }, // 모다피 -> 우츠동
+  72: { nextId: 73, minLevel: 30 }, // 왕눈해 -> 독파리
+  74: { nextId: 75, minLevel: 25 }, // 꼬마돌 -> 데구리
+  77: { nextId: 78, minLevel: 40 }, // 포니타 -> 날쌩마
+  79: { nextId: 80, minLevel: 37 }, // 야돈 -> 야도란
+  81: { nextId: 82, minLevel: 30 }, // 코일 -> 레어코일
+  84: { nextId: 85, minLevel: 31 }, // 두두 -> 두트리오
+  86: { nextId: 87, minLevel: 34 }, // 쥬쥬 -> 쥬레곤
+  88: { nextId: 89, minLevel: 38 }, // 질퍽이 -> 질뻐기
+  92: { nextId: 93, minLevel: 25 }, // 고스통 -> 고스트
+  96: { nextId: 97, minLevel: 26 }, // 슬리프 -> 슬리퍼
+  98: { nextId: 99, minLevel: 28 }, // 크랩 -> 킹크랩
+  100: { nextId: 101, minLevel: 30 },// 찌리리공 -> 붐볼
+  104: { nextId: 105, minLevel: 28 },// 탕구리 -> 텅구리
+  109: { nextId: 110, minLevel: 35 },// 또가스 -> 또도가스
+  111: { nextId: 112, minLevel: 42 },// 뿔카노 -> 코뿌리
+  116: { nextId: 117, minLevel: 32 },// 쏘드라 -> 시드라
+  118: { nextId: 119, minLevel: 33 },// 콘치 -> 왕콘치
+  129: { nextId: 130, minLevel: 20 },// 잉어킹 -> 갸라도스
+  138: { nextId: 139, minLevel: 40 },// 암나이트 -> 암스타
+  140: { nextId: 141, minLevel: 40 },// 투구 -> 투구푸스
+
+  // --- 드래곤/전설 계열 ---
+  147: { nextId: 148, minLevel: 30 },// 미뇽 -> 신뇽
+  148: { nextId: 149, minLevel: 55 },// 신뇽 -> 망나뇽
+  246: { nextId: 247, minLevel: 30 },// 애버라스 -> 데기라스
+  247: { nextId: 248, minLevel: 55 },// 데기라스 -> 마기라스
+  371: { nextId: 372, minLevel: 30 },// 아공이 -> 쉘곤
+  372: { nextId: 373, minLevel: 50 },// 쉘곤 -> 보만다
+  374: { nextId: 375, minLevel: 20 },// 메탕 -> 메탕구
+  375: { nextId: 376, minLevel: 45 },// 메탕구 -> 메타그로스
+
+  // --- 2세대~9세대 스타팅 ---
+  152: { nextId: 153, minLevel: 16 }, 153: { nextId: 154, minLevel: 32 }, // 치코리타
+  155: { nextId: 156, minLevel: 14 }, 156: { nextId: 157, minLevel: 36 }, // 브케인
+  158: { nextId: 159, minLevel: 18 }, 159: { nextId: 160, minLevel: 30 }, // 리아코
+  252: { nextId: 253, minLevel: 16 }, 253: { nextId: 254, minLevel: 36 }, // 나무지기
+  255: { nextId: 256, minLevel: 16 }, 256: { nextId: 257, minLevel: 36 }, // 아차모
+  258: { nextId: 259, minLevel: 16 }, 259: { nextId: 260, minLevel: 36 }, // 물짱이
+  387: { nextId: 388, minLevel: 18 }, 388: { nextId: 389, minLevel: 32 }, // 모부기
+  390: { nextId: 391, minLevel: 14 }, 391: { nextId: 392, minLevel: 36 }, // 불꽃숭이
+  393: { nextId: 394, minLevel: 16 }, 394: { nextId: 395, minLevel: 36 }, // 팽도리
+  495: { nextId: 496, minLevel: 17 }, 496: { nextId: 497, minLevel: 36 }, // 주리비얀
+  498: { nextId: 499, minLevel: 17 }, 499: { nextId: 500, minLevel: 36 }, // 뚜꾸리
+  501: { nextId: 502, minLevel: 17 }, 502: { nextId: 503, minLevel: 36 }, // 수쟁이
+  650: { nextId: 651, minLevel: 16 }, 651: { nextId: 652, minLevel: 36 }, // 도치마론
+  653: { nextId: 654, minLevel: 16 }, 654: { nextId: 655, minLevel: 36 }, // 푸호꼬
+  656: { nextId: 657, minLevel: 16 }, 657: { nextId: 658, minLevel: 36 }, // 개구마르
+  722: { nextId: 723, minLevel: 17 }, 723: { nextId: 724, minLevel: 34 }, // 나몰빼미
+  725: { nextId: 726, minLevel: 17 }, 726: { nextId: 727, minLevel: 34 }, // 냐오불
+  728: { nextId: 729, minLevel: 17 }, 729: { nextId: 730, minLevel: 34 }, // 누리공
+  810: { nextId: 811, minLevel: 16 }, 811: { nextId: 812, minLevel: 35 }, // 흥나숭
+  813: { nextId: 814, minLevel: 16 }, 814: { nextId: 815, minLevel: 35 }, // 염버니
+  816: { nextId: 817, minLevel: 16 }, 817: { nextId: 818, minLevel: 35 }, // 울머기
+  906: { nextId: 907, minLevel: 16 }, 907: { nextId: 908, minLevel: 36 }, // 나오하
+  909: { nextId: 910, minLevel: 16 }, 910: { nextId: 911, minLevel: 36 }, // 뜨아거
+  912: { nextId: 913, minLevel: 16 }, 913: { nextId: 914, minLevel: 36 }  // 꾸왁스
+};
 // 속성 상성 배율표 (TYPE_CHART)
 const TYPE_CHART = {
   "불꽃": { "풀": 2.0, "물": 0.5, "불꽃": 0.5, "땅": 1.0 },
