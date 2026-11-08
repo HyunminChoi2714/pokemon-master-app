@@ -1,21 +1,35 @@
 /**
- * src/engine/state.js - 게임 상태, 승급전, 영구 레벨/EXP 및 진화 엔진
+ * src/engine/state.js - 전역 게임 상태 관리, EXP 영구 저장, 진화, 배틀 및 시설 UI 엔진
  */
 
 const RANKS = ['Z', 'Y', 'X', 'W', 'V', 'U', 'T', 'S', 'R', 'Q', 'P', 'O', 'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'ELITE_FOUR', 'CHAMPION'];
 
+// 1~9세대 주요 포켓몬 진화 레벨 데이터베이스
 const EVOLUTION_MAP = {
-  1: { nextId: 2, minLevel: 16 },
-  2: { nextId: 3, minLevel: 32 },
-  4: { nextId: 5, minLevel: 16 },
-  5: { nextId: 6, minLevel: 36 },
-  7: { nextId: 8, minLevel: 16 },
-  8: { nextId: 9, minLevel: 36 },
-  25: { nextId: 26, minLevel: 20 },
-  129: { nextId: 130, minLevel: 20 }
+  1: { nextId: 2, minLevel: 16 },   // 이상해씨 -> 이상해풀
+  2: { nextId: 3, minLevel: 32 },   // 이상해풀 -> 이상해꽃
+  4: { nextId: 5, minLevel: 16 },   // 파이리 -> 리자드
+  5: { nextId: 6, minLevel: 36 },   // 리자드 -> 리자몽
+  7: { nextId: 8, minLevel: 16 },   // 꼬부기 -> 어니부기
+  8: { nextId: 9, minLevel: 36 },   // 어니부기 -> 거북왕
+  10: { nextId: 11, minLevel: 7 },  // 캐터피 -> 단데기
+  11: { nextId: 12, minLevel: 10 }, // 단데기 -> 버터플
+  13: { nextId: 14, minLevel: 7 },  // 뿔충이 -> 딱충이
+  14: { nextId: 15, minLevel: 10 }, // 딱충이 -> 독침붕
+  16: { nextId: 17, minLevel: 18 }, // 구구 -> 피전트
+  17: { nextId: 18, minLevel: 36 }, // 피전트 -> 피전투스
+  19: { nextId: 20, minLevel: 20 }, // 꼬렛 -> 레트라
+  25: { nextId: 26, minLevel: 20 }, // 피카츄 -> 라이츄
+  74: { nextId: 75, minLevel: 25 }, // 꼬마돌 -> 데구리
+  111: { nextId: 112, minLevel: 42 },// 뿔카노 -> 코뿌리
+  129: { nextId: 130, minLevel: 20 },// 잉어킹 -> 갸라도스
+  147: { nextId: 148, minLevel: 30 },// 미뇽 -> 신뇽
+  148: { nextId: 149, minLevel: 55 } // 신뇽 -> 망나뇽
 };
 
-const gameState = {
+const SAVE_KEY = 'pokemon_master_save_v1';
+
+let gameState = {
   player: {
     name: "한지우",
     rankIndex: 0,
@@ -57,6 +71,50 @@ const TYPE_SYNERGIES = {
   "비행": { name: "갓스피드", desc: "스피드 +15% & 회피율 +10%" }
 };
 
+/* ===================================================
+ * 1. 💾 데이터 영구 저장 및 복원 (LocalStorage Engine)
+ * =================================================== */
+function saveGameState() {
+  try {
+    const saveData = {
+      player: gameState.player,
+      inventory: gameState.inventory,
+      squadIds: {
+        front: gameState.squad.front.map(p => p ? p.instanceId : null),
+        back: gameState.squad.back.map(p => p ? p.instanceId : null)
+      },
+      pokedex: Array.from(gameState.pokedex)
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+  } catch (err) {
+    console.error("Save error:", err);
+  }
+}
+
+function loadGameState() {
+  try {
+    const rawData = localStorage.getItem(SAVE_KEY);
+    if (!rawData) return false;
+
+    const parsed = JSON.parse(rawData);
+    gameState.player = parsed.player || gameState.player;
+    gameState.inventory = parsed.inventory || [];
+    gameState.pokedex = new Set(parsed.pokedex || []);
+
+    if (parsed.squadIds) {
+      gameState.squad.front = parsed.squadIds.front.map(id => gameState.inventory.find(p => p && p.instanceId === id) || null);
+      gameState.squad.back = parsed.squadIds.back.map(id => gameState.inventory.find(p => p && p.instanceId === id) || null);
+    }
+    return true;
+  } catch (err) {
+    console.error("Load error:", err);
+    return false;
+  }
+}
+
+/* ===================================================
+ * 2. ⚡ 스탯 계산 & 영구 레벨/EXP/진화 반영 로직
+ * =================================================== */
 function getPlayerRankName() {
   const r = RANKS[gameState.player.rankIndex];
   if (r === 'ELITE_FOUR') return '사천왕 도전';
@@ -65,23 +123,31 @@ function getPlayerRankName() {
 }
 
 function updateTopBarUI() {
-  document.getElementById('resGem').innerText = gameState.player.gem;
-  document.getElementById('resGold').innerText = gameState.player.gold;
-  document.getElementById('resCandy').innerText = gameState.player.candy;
-  document.getElementById('trainerRank').innerText = getPlayerRankName();
-  document.getElementById('trainerName').innerText = gameState.player.name;
+  const resGem = document.getElementById('resGem');
+  const resGold = document.getElementById('resGold');
+  const resCandy = document.getElementById('resCandy');
+  const trainerRank = document.getElementById('trainerRank');
+  const trainerName = document.getElementById('trainerName');
+
+  if (resGem) resGem.innerText = gameState.player.gem;
+  if (resGold) resGold.innerText = gameState.player.gold;
+  if (resCandy) resCandy.innerText = gameState.player.candy;
+  if (trainerRank) trainerRank.innerText = getPlayerRankName();
+  if (trainerName) trainerName.innerText = gameState.player.name;
 }
 
 function createPokemonInstance(templateId, level = 5) {
-  const template = POKEMON_DB.find(p => p.id === templateId) || POKEMON_DB[0];
+  const template = (typeof POKEMON_DB !== 'undefined' ? POKEMON_DB.find(p => p.id === templateId) : null) || {
+    id: templateId, name: "이상해씨", type1: "풀", type2: "독", stage: 1, hp: 45, atk: 49, def: 49, spAtk: 65, spDef: 65, spd: 45, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
+  };
   
   const ivs = {
     hp: Math.floor(Math.random() * 32),
     atk: Math.floor(Math.random() * 32),
     def: Math.floor(Math.random() * 32),
-    spd: Math.floor(Math.random() * 32),
+    spAtk: Math.floor(Math.random() * 32),
     spDef: Math.floor(Math.random() * 32),
-    spAtk: Math.floor(Math.random() * 32)
+    spd: Math.floor(Math.random() * 32)
   };
 
   const baseSpAtk = template.spAtk || template.atk;
@@ -117,7 +183,7 @@ function addOrUpgradePokemon(templateId, level = 5) {
 
   if (existingPoke) {
     let isUpgraded = false;
-    const statsList = ['hp', 'atk', 'def', 'spd', 'spDef', 'spAtk'];
+    const statsList = ['hp', 'atk', 'def', 'spAtk', 'spDef', 'spd'];
 
     statsList.forEach(stat => {
       if (newInstance.ivs[stat] > existingPoke.ivs[stat]) {
@@ -127,15 +193,18 @@ function addOrUpgradePokemon(templateId, level = 5) {
     });
 
     if (isUpgraded) recalculatePokemonStats(existingPoke);
+    saveGameState();
     return { poke: existingPoke, isNew: false, isUpgraded };
   } else {
     gameState.inventory.push(newInstance);
     gameState.pokedex.add(newInstance.id);
+    saveGameState();
     return { poke: newInstance, isNew: true, isUpgraded: false };
   }
 }
 
 function recalculatePokemonStats(poke) {
+  if (typeof POKEMON_DB === 'undefined') return;
   const template = POKEMON_DB.find(p => p.id === poke.id);
   if (!template) return;
 
@@ -145,13 +214,13 @@ function recalculatePokemonStats(poke) {
   poke.maxHp = Math.floor(((template.hp * 2 + poke.ivs.hp) * poke.level) / 100) + poke.level + 10;
   poke.atk = Math.floor(((template.atk * 2 + poke.ivs.atk) * poke.level) / 100) + 5;
   poke.def = Math.floor(((template.def * 2 + poke.ivs.def) * poke.level) / 100) + 5;
-  poke.spAtk = Math.floor(((baseSpAtk * 2 + poke.ivs.spAtk) * poke.level) / 100) + 5;
-  poke.spDef = Math.floor(((baseSpDef * 2 + poke.ivs.spDef) * poke.level) / 100) + 5;
+  poke.spAtk = Math.floor(((baseSpAtk * 2 + poke.spAtk) * poke.level) / 100) + 5;
+  poke.spDef = Math.floor(((baseSpDef * 2 + poke.spDef) * poke.level) / 100) + 5;
   poke.spd = Math.floor(((template.spd * 2 + poke.ivs.spd) * poke.level) / 100) + 5;
 }
 
 function checkAndEvolvePokemon(poke) {
-  if (!poke || !EVOLUTION_MAP[poke.id]) return null;
+  if (!poke || !EVOLUTION_MAP[poke.id] || typeof POKEMON_DB === 'undefined') return null;
 
   const evoData = EVOLUTION_MAP[poke.id];
   if (poke.level >= evoData.minLevel) {
@@ -217,30 +286,13 @@ function addExpToPokemon(poke, amount) {
     poke.type2 = orig.type2;
   }
 
+  saveGameState();
   return resultLogs;
 }
 
-/**
- * 🌟 탭 전환 중심 함수 (전역 바인딩)
- */
-function switchTab(tabId) {
-  document.querySelectorAll('.facility-panel').forEach(panel => panel.classList.remove('active'));
-  const target = document.getElementById(`tab-${tabId}`);
-  if (!target) return;
-  target.classList.add('active');
-  updateTopBarUI();
-
-  switch (tabId) {
-    case 'village': if (typeof refreshVillageUI === 'function') refreshVillageUI(); break;
-    case 'party': renderPartyUI(); break;
-    case 'gym': renderGymUI(); break;
-    case 'mart': renderMartUI(); break;
-    case 'daycare': renderDaycareUI(); break;
-    case 'lab': renderLabUI(); break;
-    case 'dex': renderDexUI(); break;
-  }
-}
-
+/* ===================================================
+ * 3. 📊 포켓몬 세부 스탯 & 육각형 레이더 모달
+ * =================================================== */
 function getIvRatingText(iv) {
   if (iv === 31) return `<span style="color:#f1c40f; font-weight:bold;">최고! (31)</span>`;
   if (iv >= 26) return `<span style="color:#2ecc71;">훌륭하다 (${iv})</span>`;
@@ -264,30 +316,36 @@ function openPokeDetailModal(instanceId) {
   if (!poke) return;
 
   const reqExp = poke.level * 50;
-  document.getElementById('detailPokeTitle').innerText = `📊 ${poke.name} (Lv.${poke.level} / EXP: ${poke.exp || 0}/${reqExp})`;
+  const titleEl = document.getElementById('detailPokeTitle');
+  if (titleEl) titleEl.innerText = `📊 ${poke.name} (Lv.${poke.level} / EXP: ${poke.exp || 0}/${reqExp})`;
 
   const ivBox = document.getElementById('detailIvRatings');
   const ivs = poke.ivs || { hp:0, atk:0, def:0, spd:0, spDef:0, spAtk:0 };
-  ivBox.innerHTML = `
-    <div class="iv-stat-row"><span>HP 개체값:</span> ${getIvRatingText(ivs.hp)}</div>
-    <div class="iv-stat-row"><span>공격 개체값:</span> ${getIvRatingText(ivs.atk)}</div>
-    <div class="iv-stat-row"><span>방어 개체값:</span> ${getIvRatingText(ivs.def)}</div>
-    <div class="iv-stat-row"><span>스피드 개체값:</span> ${getIvRatingText(ivs.spd)}</div>
-    <div class="iv-stat-row"><span>특수방어 개체값:</span> ${getIvRatingText(ivs.spDef)}</div>
-    <div class="iv-stat-row"><span>특수공격 개체값:</span> ${getIvRatingText(ivs.spAtk)}</div>
-  `;
+  if (ivBox) {
+    ivBox.innerHTML = `
+      <div class="iv-stat-row"><span>HP 개체값:</span> ${getIvRatingText(ivs.hp)}</div>
+      <div class="iv-stat-row"><span>공격 개체값:</span> ${getIvRatingText(ivs.atk)}</div>
+      <div class="iv-stat-row"><span>방어 개체값:</span> ${getIvRatingText(ivs.def)}</div>
+      <div class="iv-stat-row"><span>스피드 개체값:</span> ${getIvRatingText(ivs.spd)}</div>
+      <div class="iv-stat-row"><span>특수방어 개체값:</span> ${getIvRatingText(ivs.spDef)}</div>
+      <div class="iv-stat-row"><span>특수공격 개체값:</span> ${getIvRatingText(ivs.spAtk)}</div>
+    `;
+  }
 
   const skillsContainer = document.getElementById('detailSkillsContainer');
   const skills = getPokemonSkills(poke);
-  skillsContainer.innerHTML = skills.map(s => `
-    <div class="skill-card">
-      <span class="skill-type-badge">${s.type}</span>
-      <div style="font-weight:bold;">${s.name}</div>
-      <div style="color:#cbd5e1; font-size:0.75rem;">위력 ${s.power} / 명중 ${s.acc}%</div>
-    </div>
-  `).join('');
+  if (skillsContainer) {
+    skillsContainer.innerHTML = skills.map(s => `
+      <div class="skill-card">
+        <span class="skill-type-badge">${s.type}</span>
+        <div style="font-weight:bold;">${s.name}</div>
+        <div style="color:#cbd5e1; font-size:0.75rem;">위력 ${s.power} / 명중 ${s.acc}%</div>
+      </div>
+    `).join('');
+  }
 
-  document.getElementById('pokeDetailModal').classList.remove('hidden');
+  const modal = document.getElementById('pokeDetailModal');
+  if (modal) modal.classList.remove('hidden');
 
   setTimeout(() => {
     const canvas = document.getElementById('statRadarCanvas');
@@ -296,7 +354,8 @@ function openPokeDetailModal(instanceId) {
 }
 
 function closePokeDetailModal() {
-  document.getElementById('pokeDetailModal').classList.add('hidden');
+  const modal = document.getElementById('pokeDetailModal');
+  if (modal) modal.classList.add('hidden');
 }
 
 function drawHexagonRadarChart(canvas, poke) {
@@ -370,6 +429,9 @@ function drawHexagonRadarChart(canvas, poke) {
   ctx.stroke();
 }
 
+/* ===================================================
+ * 4. ⚔️ 승급전 & 배틀 진행 엔진
+ * =================================================== */
 function detectActiveSynergies(teamUnits) {
   const typeCounts = {};
   teamUnits.forEach(u => {
@@ -563,14 +625,20 @@ function renderBattleArenaUnits() {
 
 function startGymBattle() {
   initBattleTeams();
-  document.getElementById('startBattleBtn').style.display = 'none';
+  const startBtn = document.getElementById('startBattleBtn');
+  if (startBtn) startBtn.style.display = 'none';
+
   const nextBtn = document.getElementById('nextTurnBtn');
-  nextBtn.style.display = 'block';
-  nextBtn.innerText = `⚡ 1라운드 실행 ➡️`;
+  if (nextBtn) {
+    nextBtn.style.display = 'block';
+    nextBtn.innerText = `⚡ 1라운드 실행 ➡️`;
+  }
   
   const dialogue = document.getElementById('battleDialogue');
   const matchInfo = getMatchTitleInfo();
-  dialogue.innerHTML = `⚔️ ${matchInfo.title} 개시! 스피드 순서대로 라운드 행동이 진행됩니다.`;
+  if (dialogue) {
+    dialogue.innerHTML = `⚔️ ${matchInfo.title} 개시! 스피드 순서대로 라운드 행동이 진행됩니다.`;
+  }
 }
 
 function nextTurnGymBattle() {
@@ -619,7 +687,7 @@ function nextTurnGymBattle() {
     target.currentHp = Math.max(0, target.currentHp - baseDmg);
 
     const teamTag = isPlayerAttacker ? `<span style="color:#38bdf8;">[아군]</span>` : `<span style="color:#ef4444;">[적군]</span>`;
-    let detailMsg = `• ${teamTag} <b>${attacker.name}</b>(Spd:${attacker.spd}) ➔ <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해!`;
+    let detailMsg = `• ${teamTag} <b>${attacker.name}</b> ➔ <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해!`;
 
     if (target.currentHp <= 0) {
       detailMsg += ` <b style="color:#ef4444;">💥(쓰러짐!)</b>`;
@@ -646,66 +714,75 @@ function nextTurnGymBattle() {
 
   if (!isEnemyAlive) {
     if (curRankStr === 'CHAMPION') {
-      logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [챔피언 방어 성공] 챔피언 자리를 지켜냈습니다! (+300 Gold, +30 Gem)</span>`);
+      logLines.push(`<br><span style="color:#2ecc71; font-weight:bold;">🎉 [챔피언 방어 성공] 챔피언 자리를 지켜냈습니다! (+300 Gold, +30 Gem)</span>`);
     } else if (curRankStr === 'ELITE_FOUR') {
       if (gameState.player.eliteWins < 4) {
         gameState.player.eliteWins += 1;
         if (gameState.player.eliteWins === 4) {
-          logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1rem;">🔥 [사천왕 4연승 달성!] 마침내 챔피언 도전권이 해금되었습니다!</span>`);
+          logLines.push(`<br><span style="color:#f1c40f; font-weight:bold;">🔥 [사천왕 4연승 달성!] 마침내 챔피언 도전권이 해금되었습니다!</span>`);
         } else {
-          logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [사천왕 승리] ${gameState.player.eliteWins}/4번째 사천왕 격파!</span>`);
+          logLines.push(`<br><span style="color:#2ecc71; font-weight:bold;">🎉 [사천왕 승리] ${gameState.player.eliteWins}/4번째 사천왕 격파!</span>`);
         }
       } else {
         gameState.player.rankIndex = RANKS.indexOf('CHAMPION');
-        logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1.1rem;">🏆 [최종 챔피언 등극!] 챔피언을 쓰러뜨리고 세계 챔피언이 되었습니다!</span>`);
+        logLines.push(`<br><span style="color:#f1c40f; font-weight:bold;">🏆 [최종 챔피언 등극!] 챔피언을 쓰러뜨리고 세계 챔피언이 되었습니다!</span>`);
       }
     } else {
       if (gameState.player.trainerWins < 3) {
         gameState.player.trainerWins += 1;
         if (gameState.player.trainerWins === 3) {
-          logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1rem;">🔥 [3연승 성공!] ${curRankStr}-랭크 관장 승급전 도전권 해금!</span>`);
+          logLines.push(`<br><span style="color:#f1c40f; font-weight:bold;">🔥 [3연승 성공!] ${curRankStr}-랭크 관장 승급전 도전권 해금!</span>`);
         } else {
-          logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [트레이너 승리] ${gameState.player.trainerWins}/3연승 달성!</span>`);
+          logLines.push(`<br><span style="color:#2ecc71; font-weight:bold;">🎉 [트레이너 승리] ${gameState.player.trainerWins}/3연승 달성!</span>`);
         }
       } else {
         gameState.player.rankIndex += 1;
         gameState.player.trainerWins = 0;
         const newRankStr = getPlayerRankName();
-        logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1.1rem;">🎊 [관장 격파 승급!] 축하합니다! ${newRankStr}(으)로 승급하셨습니다!</span>`);
+        logLines.push(`<br><span style="color:#f1c40f; font-weight:bold;">🎊 [관장 격파 승급!] 축하합니다! ${newRankStr}(으)로 승급하셨습니다!</span>`);
       }
     }
 
     gameState.player.gold += 200;
     gameState.player.gem += 20;
+    saveGameState();
     updateTopBarUI();
     currentBattleState.isFinished = true;
-    nextBtn.style.display = 'none';
-    document.getElementById('startBattleBtn').style.display = 'block';
+    if (nextBtn) nextBtn.style.display = 'none';
+    const startBtn = document.getElementById('startBattleBtn');
+    if (startBtn) startBtn.style.display = 'block';
 
   } else if (!isPlayerAlive) {
     if (curRankStr === 'ELITE_FOUR') {
       gameState.player.eliteWins = 0;
-      logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [사천왕 패배] 사천왕 도전은 1번 사천왕부터 다시 도전해야 합니다!</span>`);
+      logLines.push(`<br><span style="color:#ef4444; font-weight:bold;">💀 [사천왕 패배] 사천왕 도전은 1번 사천왕부터 다시 도전해야 합니다!</span>`);
     } else if (curRankStr !== 'CHAMPION') {
       if (gameState.player.trainerWins < 3) {
         gameState.player.trainerWins = 0;
-        logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [트레이너 패배] 3연승 실패! 첫 번째 트레이너부터 다시 도전해야 합니다.</span>`);
+        logLines.push(`<br><span style="color:#ef4444; font-weight:bold;">💀 [트레이너 패배] 3연승 실패! 첫 번째 트레이너부터 다시 도전해야 합니다.</span>`);
       } else {
-        logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [관장전 패배] 관장 승급전 실패... 다시 관장전부터 도전하세요.</span>`);
+        logLines.push(`<br><span style="color:#ef4444; font-weight:bold;">💀 [관장전 패배] 관장 승급전 실패... 다시 관장전부터 도전하세요.</span>`);
       }
     }
+    saveGameState();
     currentBattleState.isFinished = true;
-    nextBtn.style.display = 'none';
-    document.getElementById('startBattleBtn').style.display = 'block';
+    if (nextBtn) nextBtn.style.display = 'none';
+    const startBtn = document.getElementById('startBattleBtn');
+    if (startBtn) startBtn.style.display = 'block';
   } else {
     currentBattleState.round += 1;
-    nextBtn.innerText = `⚡ ${currentBattleState.round}라운드 실행 ➡️`;
+    if (nextBtn) nextBtn.innerText = `⚡ ${currentBattleState.round}라운드 실행 ➡️`;
   }
 
-  dialogue.innerHTML = logLines.join('<br>');
-  dialogue.scrollTop = dialogue.scrollHeight;
+  if (dialogue) {
+    dialogue.innerHTML = logLines.join('<br>');
+    dialogue.scrollTop = dialogue.scrollHeight;
+  }
 }
 
+/* ===================================================
+ * 5. 🏢 기타 시설 UI 렌더링 함수 세트
+ * =================================================== */
 function renderPartyUI() { renderSquadSlots(); renderInventoryList(); }
 function renderSquadSlots() {
   const fc = document.getElementById('squadFrontContainer');
@@ -749,32 +826,45 @@ function renderInventoryList() {
 
 function openSquadModal(row, index) {
   selectedSlotInfo = { row, index };
-  document.getElementById('modalSlotTitle').innerText = `${row === 'front' ? '전열' : '후열'} ${index + 1} 슬롯 선택`;
+  const titleEl = document.getElementById('modalSlotTitle');
+  if (titleEl) titleEl.innerText = `${row === 'front' ? '전열' : '후열'} ${index + 1} 슬롯 선택`;
   const modalList = document.getElementById('modalPokeList');
-  if (gameState.inventory.length === 0) {
-    modalList.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 20px;">선택 가능한 포켓몬이 없습니다.</div>`;
-  } else {
-    modalList.innerHTML = gameState.inventory.map(poke => `
-      <div class="inventory-card" onclick="selectPokeForSquad('${poke.instanceId}')">
-        <img src="${poke.img}">
-        <div style="font-weight: bold;">${poke.name}</div>
-        <div style="font-size: 0.8rem; color: #cbd5e1;">Lv.${poke.level}</div>
-      </div>
-    `).join('');
+  if (modalList) {
+    if (gameState.inventory.length === 0) {
+      modalList.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: #94a3b8; padding: 20px;">선택 가능한 포켓몬이 없습니다.</div>`;
+    } else {
+      modalList.innerHTML = gameState.inventory.map(poke => `
+        <div class="inventory-card" onclick="selectPokeForSquad('${poke.instanceId}')">
+          <img src="${poke.img}">
+          <div style="font-weight: bold;">${poke.name}</div>
+          <div style="font-size: 0.8rem; color: #cbd5e1;">Lv.${poke.level}</div>
+        </div>
+      `).join('');
+    }
   }
-  document.getElementById('squadSelectModal').classList.remove('hidden');
+  const modal = document.getElementById('squadSelectModal');
+  if (modal) modal.classList.remove('hidden');
 }
-function closeSquadModal() { document.getElementById('squadSelectModal').classList.add('hidden'); selectedSlotInfo = null; }
+function closeSquadModal() {
+  const modal = document.getElementById('squadSelectModal');
+  if (modal) modal.classList.add('hidden');
+  selectedSlotInfo = null;
+}
 function selectPokeForSquad(instanceId) {
   if (!selectedSlotInfo) return;
   const poke = gameState.inventory.find(p => p.instanceId === instanceId);
   if (poke) {
     gameState.squad[selectedSlotInfo.row][selectedSlotInfo.index] = poke;
+    saveGameState();
     closeSquadModal();
     renderSquadSlots();
   }
 }
-function removeFromSquad(row, index) { gameState.squad[row][index] = null; renderSquadSlots(); }
+function removeFromSquad(row, index) {
+  gameState.squad[row][index] = null;
+  saveGameState();
+  renderSquadSlots();
+}
 
 function renderMartUI() {
   const container = document.getElementById('martContentContainer');
@@ -800,6 +890,7 @@ function buyMartItem(type, amount, cost) {
   if (gameState.player.gold < cost) { alert('Gold가 부족합니다!'); return; }
   gameState.player.gold -= cost;
   gameState.player[type] += amount;
+  saveGameState();
   alert(`${type === 'candy' ? '이상한사탕' : 'Gem'} ${amount}개를 구매했습니다!`);
   updateTopBarUI();
 }
@@ -833,6 +924,7 @@ function levelUpPokemon(instanceId) {
     recalculatePokemonStats(poke);
     poke.currentHp = poke.maxHp;
     const evoLog = checkAndEvolvePokemon(poke);
+    saveGameState();
     updateTopBarUI();
     renderDaycareUI();
     if (evoLog) {
@@ -862,8 +954,10 @@ function renderLabUI() {
 function summonLabPokemon(count) {
   const cost = count * 10;
   if (gameState.player.gem < cost) { alert('Gem이 부족합니다!'); return; }
+  if (typeof POKEMON_DB === 'undefined') return;
   const basePool = POKEMON_DB.filter(p => p.isBaseStage || p.stage === 1);
   if (!basePool || basePool.length === 0) return;
+
   gameState.player.gem -= cost;
   const results = [];
   for (let i = 0; i < count; i++) {
@@ -871,13 +965,14 @@ function summonLabPokemon(count) {
     const res = addOrUpgradePokemon(template.id, 5);
     results.push(res.isNew ? `✨ [신규 획득] ${res.poke.name}` : (res.isUpgraded ? `📈 [IV 강화] ${res.poke.name}` : `🔄 [상태 유지] ${res.poke.name}`));
   }
+  saveGameState();
   updateTopBarUI();
   alert(`🎲 소환 결과!\n\n` + results.join('\n'));
 }
 
 function renderDexUI() {
   const container = document.getElementById('dexContentContainer');
-  if (!container) return;
+  if (!container || typeof POKEMON_DB === 'undefined') return;
   const totalCount = POKEMON_DB.length;
   const collectedCount = gameState.pokedex.size;
   container.innerHTML = `
@@ -899,8 +994,41 @@ function renderDexUI() {
   `;
 }
 
-// 전역 바인딩 보장
+/* ===================================================
+ * 6. 🔄 탭 전환 관리 (switchTab)
+ * =================================================== */
+function switchTab(tabId) {
+  document.querySelectorAll('.facility-panel').forEach(panel => panel.classList.remove('active'));
+  const target = document.getElementById(`tab-${tabId}`);
+  if (!target) return;
+
+  target.classList.add('active');
+  updateTopBarUI();
+
+  switch (tabId) {
+    case 'village': if (typeof window.refreshVillageUI === 'function') window.refreshVillageUI(); break;
+    case 'party': renderPartyUI(); break;
+    case 'gym': renderGymUI(); break;
+    case 'mart': renderMartUI(); break;
+    case 'daycare': renderDaycareUI(); break;
+    case 'lab': renderLabUI(); break;
+    case 'dex': renderDexUI(); break;
+  }
+}
+
+// 데이터 초기 로드 및 기본 포켓몬 세팅
+if (!loadGameState() || gameState.inventory.length === 0) {
+  addOrUpgradePokemon(1, 5);  // 이상해씨
+  addOrUpgradePokemon(4, 5);  // 파이리
+  addOrUpgradePokemon(7, 5);  // 꼬부기
+  saveGameState();
+}
+
+// 전역 스코프 바인딩
 window.gameState = gameState;
+window.saveGameState = saveGameState;
+window.loadGameState = loadGameState;
+window.addExpToPokemon = addExpToPokemon;
 window.switchTab = switchTab;
 window.updateTopBarUI = updateTopBarUI;
 window.getPlayerRankName = getPlayerRankName;
