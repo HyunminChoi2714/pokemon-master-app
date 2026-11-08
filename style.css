@@ -25,24 +25,24 @@ body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-dark); 
 .facility-panel.active { display: block; }
 .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
 
-/* 2D 라이브 마을 */
+/* 2D 라이브 마을 필드 & 건물 클릭 클릭 감지 강화 */
 .village-2d-field { position: relative; width: 100%; height: 520px; background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); border-radius: 16px; overflow: hidden; border: 2px solid var(--accent-yellow); }
-.ambient-clouds { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; }
+.ambient-clouds { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; z-index: 1; }
 .cloud { position: absolute; background: rgba(255, 255, 255, 0.12); border-radius: 50px; filter: blur(8px); animation: moveCloud linear infinite; }
 .cloud-1 { width: 180px; height: 60px; top: 10%; left: -200px; animation-duration: 25s; }
 .cloud-2 { width: 250px; height: 80px; top: 40%; left: -280px; animation-duration: 38s; }
 .cloud-3 { width: 200px; height: 70px; top: 70%; left: -220px; animation-duration: 30s; }
 @keyframes moveCloud { 0% { transform: translateX(0); } 100% { transform: translateX(120vw); } }
 
-.building-nodes-container { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 20px; padding: 30px; height: 100%; }
-.building-node-card { background: rgba(15, 23, 42, 0.85); border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: all 0.3s ease; animation: floatIdle 4s ease-in-out infinite alternate; }
+.building-nodes-container { position: relative; z-index: 10; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 20px; padding: 30px; height: 100%; }
+.building-node-card { position: relative; z-index: 11; background: rgba(15, 23, 42, 0.85); border: 2px solid rgba(255, 255, 255, 0.15); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; animation: floatIdle 4s ease-in-out infinite alternate; user-select: none; }
 .building-node-card:hover { transform: translateY(-8px) scale(1.05); border-color: var(--accent-yellow); box-shadow: 0 0 20px rgba(241, 196, 15, 0.4); }
 @keyframes floatIdle { 0% { transform: translateY(0px); } 100% { transform: translateY(-8px); } }
-.building-icon { font-size: 3rem; margin-bottom: 6px; }
-.building-title { font-size: 1.1rem; font-weight: bold; }
-.building-status-badge { position: absolute; top: -12px; background: #0f172a; border: 1.5px solid var(--accent-yellow); color: #f1c40f; font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; }
+.building-icon { font-size: 3rem; margin-bottom: 6px; pointer-events: none; }
+.building-title { font-size: 1.1rem; font-weight: bold; pointer-events: none; }
+.building-status-badge { position: absolute; top: -12px; background: #0f172a; border: 1.5px solid var(--accent-yellow); color: #f1c40f; font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; pointer-events: none; }
 
-/* 엔트리 & 카드리스트 */
+/* 파티 & 인벤토리 grid */
 .squad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
 .squad-slot { height: 90px; border-radius: 12px; border: 2px dashed var(--border-color); display: flex; align-items: center; justify-content: center; cursor: pointer; background: rgba(0, 0, 0, 0.2); }
 .squad-slot.occupied { border-style: solid; border-color: var(--accent-blue); background: rgba(56, 189, 248, 0.15); justify-content: flex-start; padding: 10px; gap: 10px; position: relative; }
@@ -54,7 +54,7 @@ body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-dark); 
 .inventory-card:hover { transform: translateY(-4px); border-color: var(--accent-yellow); }
 .inventory-card img { width: 70px; height: 70px; object-fit: contain; }
 
-/* 배틀 아레나 & 경험치 바 추가 */
+/* 배틀 아레나 */
 .battle-field { display: flex; flex-direction: column; gap: 12px; }
 .arena-display {
   position: relative; height: 410px;

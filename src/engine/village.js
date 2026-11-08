@@ -1,5 +1,5 @@
 /**
- * src/engine/village.js - 2D 라이브 마을 UI & 건물 노드 자동 렌더링 엔진
+ * src/engine/village.js - 2D 라이브 마을 UI & 클릭 이벤트 직접 바인딩 엔진
  */
 
 const BUILDINGS_CONFIG = [
@@ -16,7 +16,7 @@ function init2DVillage() {
 }
 
 /**
- * 마을 건물 카드 생성 및 렌더링
+ * 건물 카드를 생성하고 클릭 이벤트를 직접 동적 연결
  */
 function renderVillageNodes() {
   const container = document.getElementById('buildingNodesContainer');
@@ -32,20 +32,35 @@ function renderVillageNodes() {
       }
 
       return `
-        <div class="building-node-card" onclick="switchTab('${b.id}')">
+        <div class="building-node-card" data-building-id="${b.id}">
           <div class="building-status-badge">${dynamicBadge}</div>
           <div class="building-icon">${b.icon}</div>
           <div class="building-title">${b.name}</div>
         </div>
       `;
     }).join('');
+
+    // 인라인 HTML 대신 JS Event Listener를 직접 바인딩하여 클릭 문제 근본적 해결
+    container.querySelectorAll('.building-node-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetId = card.getAttribute('data-building-id');
+        if (typeof window.switchTab === 'function') {
+          window.switchTab(targetId);
+        } else if (typeof switchTab === 'function') {
+          switchTab(targetId);
+        }
+      });
+    });
+
   } catch (err) {
     console.error("Village node render error:", err);
   }
 }
 
 /**
- * 게임 상태에 맞춰 건물 간판 실시간 업데이트
+ * 실시간 상태 간판 보완
  */
 function getDynamicBadge(buildingId, defaultText) {
   if (typeof gameState === 'undefined' || !gameState) return defaultText;
@@ -72,12 +87,11 @@ function refreshVillageUI() {
   renderVillageNodes();
 }
 
-// 전역 스코프 등록
+// 전역 등록
 window.init2DVillage = init2DVillage;
 window.renderVillageNodes = renderVillageNodes;
 window.refreshVillageUI = refreshVillageUI;
 
-// 스크립트 로드 타이밍과 관계없이 자동 가동 보장
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init2DVillage);
 } else {
