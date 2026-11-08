@@ -1,11 +1,15 @@
 /**
- * src/engine/state.js - 1클릭 1라운드 완전 실행 및 스피드 순차 로그 렌더링 엔진
+ * src/engine/state.js - 승급전 규칙 (3연승/관장/사천왕/챔피언) 및 경험치/레벨업 완전 통합 엔진
  */
+
+const RANKS = ['Z', 'Y', 'X', 'W', 'V', 'U', 'T', 'S', 'R', 'Q', 'P', 'O', 'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'ELITE_FOUR', 'CHAMPION'];
 
 const gameState = {
   player: {
     name: "한지우",
-    rank: "Z",
+    rankIndex: 0, // 0: Z랭크 ~ 25: A랭크, 26: 사천왕, 27: CHAMPION
+    trainerWins: 0, // 현재 랭크 내 일반 트레이너 연승 수 (0~3)
+    eliteWins: 0,   // 사천왕 연승 수 (0~4)
     gold: 1000,
     gem: 500,
     candy: 50
@@ -21,11 +25,40 @@ const gameState = {
 let selectedSlotInfo = null;
 let currentBattleState = null;
 
+// 18개 타입 시너지 정의
+const TYPE_SYNERGIES = {
+  "불꽃": { name: "타오르는 불사조", desc: "공격력 +15% & 공격 시 20% 화상" },
+  "물": { name: "아쿠아마린", desc: "라운드 종료 시 HP 6% 회복 & 물 기술 +15%" },
+  "풀": { name: "생명의 꽃봉오리", desc: "라운드 종료 시 HP 6% 회복 & 20% 상태이상 해제" },
+  "전기": { name: "제우스의 분노", desc: "스피드 +15% & 공격 시 15% 마비(Spd-30%)" },
+  "땅": { name: "레이지 그래비티", desc: "방어력 +15% & 땅 기술 적 방어 25% 무시" },
+  "강철": { name: "불멸의 방호", desc: "피격 피해 -15% & 방어력 +10%" },
+  "격투": { name: "맹호경파산", desc: "공격력 +15% & 크리티컬 확률 +15%" },
+  "고스트": { name: "엑소시스트", desc: "회피율 +15% & 적 처치 시 HP 20% 회복" },
+  "악": { name: "흑야의 잔영", desc: "크리티컬 피해 +25% & HP 30% 이하 시 공격력 +20%" },
+  "노말": { name: "라스트 스탠드", desc: "전원 6대 능력치 +8% 상시 상승" },
+  "페어리": { name: "요정의 축복", desc: "매 라운드 시작 시 최대 HP 8% 보호막" },
+  "에스퍼": { name: "사이킥 오버로드", desc: "특수공격력 +15% & 공격 시 15% 혼란" },
+  "독": { name: "멜트다운", desc: "공격 시 25% 확률로 중독(매 턴 HP 5% 피격)" },
+  "드래곤": { name: "니벨룽겐의 포효", desc: "공격력 +10% & 크리티컬 +10% & 드래곤 기술 +15%" },
+  "얼음": { name: "유키온나의 저주", desc: "피격 시 15% 확률로 적 1턴 간 빙결" },
+  "벌레": { name: "인페스테이션", desc: "스피드 +10% & 20% 확률 1회 추가 공격" },
+  "바위": { name: "천암만학", desc: "방어력 +20% & 피격 피해량 10% 감소" },
+  "비행": { name: "갓스피드", desc: "스피드 +15% & 회피율 +10%" }
+};
+
+function getPlayerRankName() {
+  const r = RANKS[gameState.player.rankIndex];
+  if (r === 'ELITE_FOUR') return '사천왕 도전';
+  if (r === 'CHAMPION') return '👑 챔피언';
+  return `${r}-Rank`;
+}
+
 function updateTopBarUI() {
   document.getElementById('resGem').innerText = gameState.player.gem;
   document.getElementById('resGold').innerText = gameState.player.gold;
   document.getElementById('resCandy').innerText = gameState.player.candy;
-  document.getElementById('trainerRank').innerText = `${gameState.player.rank}-Rank`;
+  document.getElementById('trainerRank').innerText = getPlayerRankName();
   document.getElementById('trainerName').innerText = gameState.player.name;
 }
 
@@ -100,7 +133,6 @@ function recalculatePokemonStats(poke) {
   const baseSpDef = template.spDef || template.def;
 
   poke.maxHp = Math.floor(((template.hp * 2 + poke.ivs.hp) * poke.level) / 100) + poke.level + 10;
-  poke.currentHp = poke.maxHp;
   poke.atk = Math.floor(((template.atk * 2 + poke.ivs.atk) * poke.level) / 100) + 5;
   poke.def = Math.floor(((template.def * 2 + poke.ivs.def) * poke.level) / 100) + 5;
   poke.spAtk = Math.floor(((baseSpAtk * 2 + poke.ivs.spAtk) * poke.level) / 100) + 5;
@@ -108,8 +140,31 @@ function recalculatePokemonStats(poke) {
   poke.spd = Math.floor(((template.spd * 2 + poke.ivs.spd) * poke.level) / 100) + 5;
 }
 
+/**
+ * 🌟 경험치 획득 및 레벨업 시스템 함수
+ */
+function addExpToPokemon(poke, amount) {
+  poke.exp = (poke.exp || 0) + amount;
+  let reqExp = poke.level * 50;
+  let levelUps = 0;
+
+  while (poke.exp >= reqExp) {
+    poke.exp -= reqExp;
+    poke.level += 1;
+    levelUps++;
+    reqExp = poke.level * 50;
+  }
+
+  if (levelUps > 0) {
+    recalculatePokemonStats(poke);
+    poke.currentHp = poke.maxHp; // 레벨업 시 체력 완충
+    return levelUps;
+  }
+  return 0;
+}
+
 /* ===================================================
- * 1. 📊 육각형(Radar) 스탯 그래프 & 기술 4종 모달
+ * 1. 📊 육각형 스탯 & 모달
  * =================================================== */
 
 function getIvRatingText(iv) {
@@ -134,7 +189,8 @@ function openPokeDetailModal(instanceId) {
   const poke = gameState.inventory.find(p => p.instanceId === instanceId);
   if (!poke) return;
 
-  document.getElementById('detailPokeTitle').innerText = `📊 ${poke.name} (Lv.${poke.level}) 스탯 / 개체값`;
+  const reqExp = poke.level * 50;
+  document.getElementById('detailPokeTitle').innerText = `📊 ${poke.name} (Lv.${poke.level} / EXP: ${poke.exp || 0}/${reqExp})`;
 
   const ivBox = document.getElementById('detailIvRatings');
   const ivs = poke.ivs || { hp:0, atk:0, def:0, spd:0, spDef:0, spAtk:0 };
@@ -241,19 +297,63 @@ function drawHexagonRadarChart(canvas, poke) {
 }
 
 /* ===================================================
- * 2. ⚔️ 1클릭 1라운드 순차 처리 및 대사창 순차 출력 엔진
+ * 2. ⚔️ 랭크 승급전 & 경험치/레벨업 배틀 엔진
  * =================================================== */
+
+function detectActiveSynergies(teamUnits) {
+  const typeCounts = {};
+  teamUnits.forEach(u => {
+    if (!u) return;
+    if (u.type1) typeCounts[u.type1] = (typeCounts[u.type1] || 0) + 1;
+    if (u.type2) typeCounts[u.type2] = (typeCounts[u.type2] || 0) + 1;
+  });
+
+  const activeTypes = [];
+  Object.keys(typeCounts).forEach(t => {
+    if (typeCounts[t] >= 3 && TYPE_SYNERGIES[t]) {
+      activeTypes.push({ type: t, ...TYPE_SYNERGIES[t] });
+    }
+  });
+  return activeTypes;
+}
+
+function getMatchTitleInfo() {
+  const rIndex = gameState.player.rankIndex;
+  const rankStr = RANKS[rIndex];
+
+  if (rankStr === 'CHAMPION') {
+    return { title: '👑 세계 챔피언 방어전', sub: '최상위 챔피언 칭호를 보유 중입니다!' };
+  }
+  if (rankStr === 'ELITE_FOUR') {
+    const eWins = gameState.player.eliteWins;
+    if (eWins < 4) {
+      return { title: `🗡️ 사천왕 ${eWins + 1}번째 도전`, sub: `사천왕 4연승 필요 (${eWins}/4 연승 중)` };
+    } else {
+      return { title: `👑 챔피언 최종 승급전`, sub: `세계 챔피언에 도전하세요!` };
+    }
+  }
+
+  // 일반 Z~A 랭크
+  const tWins = gameState.player.trainerWins;
+  if (tWins < 3) {
+    return { title: `🏛️ ${rankStr}-랭크 트레이너 ${tWins + 1}번째 상대`, sub: `3연승 필요 (${tWins}/3 연승 중)` };
+  } else {
+    return { title: `🔥 ${rankStr}-랭크 관장 승급전`, sub: `관장을 격파하고 승급하세요!` };
+  }
+}
 
 function renderGymUI() {
   const container = document.getElementById('gymContentContainer');
   if (!container) return;
 
+  const matchInfo = getMatchTitleInfo();
+
   container.innerHTML = `
     <div class="battle-field">
       <div class="arena-display">
         <div class="sk-top-hud">
-          <div class="sk-stage-name" id="stageTitle">🏛️ Z-랭크 1단계 관장 도전전</div>
-          <div class="sk-rank-info" id="rankProgress">승급 포인트: 0 / 100</div>
+          <div class="sk-stage-name" id="stageTitle">${matchInfo.title}</div>
+          <div class="sk-synergy-tag" id="synergyStatusTag">시너지: 계산 중</div>
         </div>
 
         <div class="sk-battle-zone">
@@ -272,11 +372,11 @@ function renderGymUI() {
       </div>
 
       <div class="sk-dialogue-box" id="battleDialogue">
-        ⚔️ 배틀 준비 완료. '승급 배틀 시작' 버튼을 누르세요.
+        ⚔️ ${matchInfo.sub} '배틀 시작' 버튼을 누르세요.
       </div>
 
       <div class="sk-bottom-control" style="display: flex; gap: 10px;">
-        <button class="btn-action" id="startBattleBtn" onclick="startGymBattle()" style="flex: 1; padding: 12px; font-size: 1rem;">⚔️ 승급 배틀 시작</button>
+        <button class="btn-action" id="startBattleBtn" onclick="startGymBattle()" style="flex: 1; padding: 12px; font-size: 1rem;">⚔️ 배틀 시작</button>
         <button class="btn-action" id="nextTurnBtn" onclick="nextTurnGymBattle()" style="display:none; flex: 1; background: var(--accent-yellow); color: #0f172a; padding: 12px; font-size: 1rem;">⚡ 1라운드 실행 ➡️</button>
       </div>
     </div>
@@ -294,25 +394,60 @@ function initBattleTeams() {
     if (!pBack[i]) pBack[i] = { ...createPokemonInstance(25, 5), side: 'player', position: 'back' };
   }
 
+  // 상대 포켓몬 레벨 난이도 계산
+  const baseLvl = 5 + gameState.player.rankIndex * 3;
+
   const eFront = [
-    { ...createPokemonInstance(74, 5), side: 'enemy', position: 'front' },
-    { ...createPokemonInstance(95, 5), side: 'enemy', position: 'front' },
-    { ...createPokemonInstance(111, 5), side: 'enemy', position: 'front' }
+    { ...createPokemonInstance(74, baseLvl), side: 'enemy', position: 'front' },
+    { ...createPokemonInstance(95, baseLvl), side: 'enemy', position: 'front' },
+    { ...createPokemonInstance(111, baseLvl), side: 'enemy', position: 'front' }
   ];
   const eBack = [
-    { ...createPokemonInstance(41, 5), side: 'enemy', position: 'back' },
-    { ...createPokemonInstance(21, 5), side: 'enemy', position: 'back' },
-    { ...createPokemonInstance(52, 5), side: 'enemy', position: 'back' }
+    { ...createPokemonInstance(41, baseLvl), side: 'enemy', position: 'back' },
+    { ...createPokemonInstance(21, baseLvl), side: 'enemy', position: 'back' },
+    { ...createPokemonInstance(52, baseLvl), side: 'enemy', position: 'back' }
   ];
+
+  const playerSynergies = detectActiveSynergies([...pFront, ...pBack]);
+  
+  const applySynergyStats = (team, synergies) => {
+    synergies.forEach(s => {
+      team.forEach(u => {
+        if (!u) return;
+        if (s.type === '불꽃' || s.type === '격투') u.atk = Math.floor(u.atk * 1.15);
+        if (s.type === '전기' || s.type === '비행') u.spd = Math.floor(u.spd * 1.15);
+        if (s.type === '땅' || s.type === '바위') u.def = Math.floor(u.def * 1.15);
+        if (s.type === '노말') {
+          u.atk = Math.floor(u.atk * 1.08);
+          u.def = Math.floor(u.def * 1.08);
+          u.spd = Math.floor(u.spd * 1.08);
+        }
+      });
+    });
+  };
+
+  applySynergyStats([...pFront, ...pBack], playerSynergies);
 
   currentBattleState = {
     playerFront: pFront,
     playerBack: pBack,
     enemyFront: eFront,
     enemyBack: eBack,
+    playerSynergies,
     round: 1,
     isFinished: false
   };
+
+  const tag = document.getElementById('synergyStatusTag');
+  if (tag) {
+    if (playerSynergies.length > 0) {
+      tag.innerText = `시너지: ${playerSynergies.map(s => s.name).join(', ')}`;
+      tag.style.color = '#2ecc71';
+    } else {
+      tag.innerText = `시너지: 없음 (동일 타입 3마리 필요)`;
+      tag.style.color = '#94a3b8';
+    }
+  }
 
   renderBattleArenaUnits();
 }
@@ -324,6 +459,9 @@ function renderBattleArenaUnits() {
     if (!poke) return `<div class="sk-unit empty" style="width:60px; height:60px;"></div>`;
     const isFainted = poke.currentHp <= 0;
     const hpPct = Math.max(0, Math.min(100, (poke.currentHp / poke.maxHp) * 100));
+    const reqExp = poke.level * 50;
+    const expPct = Math.max(0, Math.min(100, ((poke.exp || 0) / reqExp) * 100));
+
     return `
       <div class="sk-unit ${isFainted ? 'fainted' : ''}" id="unit-${poke.instanceId}">
         <div class="sk-hp-badge">
@@ -334,6 +472,7 @@ function renderBattleArenaUnits() {
           <div class="sk-hp-bg">
             <div class="sk-hp-fill ${poke.side === 'enemy' ? 'enemy' : ''}" style="width: ${hpPct}%;"></div>
           </div>
+          ${poke.side === 'player' ? `<div class="sk-exp-bg"><div class="sk-exp-fill" style="width: ${expPct}%;"></div></div>` : ''}
         </div>
         <div class="sk-sprite-wrapper">
           <img src="${poke.img}" class="sk-sprite ${isFlip ? 'flip' : ''}">
@@ -362,11 +501,12 @@ function startGymBattle() {
   nextBtn.innerText = `⚡ 1라운드 실행 ➡️`;
   
   const dialogue = document.getElementById('battleDialogue');
-  dialogue.innerHTML = `⚔️ Z-Rank 승급전 개시! 버튼을 누르면 한 라운드 동안 모든 생존 포켓몬이 스피드 순으로 순차 공격합니다.`;
+  const matchInfo = getMatchTitleInfo();
+  dialogue.innerHTML = `⚔️ ${matchInfo.title} 개시! 스피드 순서대로 라운드 행동이 진행됩니다.`;
 }
 
 /**
- * 🌟 1클릭 = 1라운드 전체 완결 & 발생 활동 순차 로그 출력
+ * 🌟 승급 규칙 및 경험치/레벨업 반영 1라운드 완전 실행
  */
 function nextTurnGymBattle() {
   if (!currentBattleState || currentBattleState.isFinished) return;
@@ -374,7 +514,19 @@ function nextTurnGymBattle() {
   const dialogue = document.getElementById('battleDialogue');
   const nextBtn = document.getElementById('nextTurnBtn');
 
-  // 이번 라운드에 생존해 있는 전장의 모든 유닛 큐 구성 (스피드 내림차순)
+  const hasWaterSynergy = currentBattleState.playerSynergies.some(s => s.type === '물' || s.type === '풀');
+  const playerAliveUnits = [...currentBattleState.playerFront, ...currentBattleState.playerBack].filter(u => u && u.currentHp > 0);
+
+  const logLines = [`<b>🔔 [제 ${currentBattleState.round} 라운드 전투 진행]</b>`];
+
+  if (hasWaterSynergy && playerAliveUnits.length > 0) {
+    playerAliveUnits.forEach(u => {
+      const healAmt = Math.floor(u.maxHp * 0.06);
+      u.currentHp = Math.min(u.maxHp, u.currentHp + healAmt);
+    });
+    logLines.push(`💧/🌿 <b>[타입 시너지]</b> 아군 전원 HP 6% 회복!`);
+  }
+
   const roundQueue = [
     ...currentBattleState.playerFront, ...currentBattleState.playerBack,
     ...currentBattleState.enemyFront, ...currentBattleState.enemyBack
@@ -382,12 +534,9 @@ function nextTurnGymBattle() {
 
   roundQueue.sort((a, b) => (b.spd || 0) - (a.spd || 0));
 
-  const logLines = [`<b>🔔 [제 ${currentBattleState.round} 라운드 전원 행동 로그]</b>`];
-
-  // 스피드 순서대로 라운드 내 모든 유닛 1회씩 행동 처리
   for (let i = 0; i < roundQueue.length; i++) {
     const attacker = roundQueue[i];
-    if (attacker.currentHp <= 0) continue; // 라운드 진행 중 사망했으면 스킵
+    if (attacker.currentHp <= 0) continue;
 
     const isPlayerAttacker = attacker.side === 'player';
     const targetPoolFront = isPlayerAttacker ? currentBattleState.enemyFront : currentBattleState.playerFront;
@@ -398,35 +547,98 @@ function nextTurnGymBattle() {
       aliveTargets = targetPoolBack.filter(t => t && t.currentHp > 0);
     }
 
-    if (aliveTargets.length === 0) break; // 상대 전원 사망 시 라운드 조기 종료
+    if (aliveTargets.length === 0) break;
 
     const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
     const baseDmg = Math.max(5, attacker.atk - Math.floor(target.def / 2));
     target.currentHp = Math.max(0, target.currentHp - baseDmg);
 
     const teamTag = isPlayerAttacker ? `<span style="color:#38bdf8;">[아군]</span>` : `<span style="color:#ef4444;">[적군]</span>`;
-    const faintedTag = target.currentHp <= 0 ? ' <b style="color:#ef4444;">💥(빈사!)</b>' : '';
+    let detailMsg = `• ${teamTag} <b>${attacker.name}</b>(Spd:${attacker.spd}) ➔ <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해!`;
 
-    logLines.push(`• ${teamTag} <b>${attacker.name}</b>(Spd:${attacker.spd}) ➔ <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해! (HP: ${target.currentHp})${faintedTag}`);
+    // 🌟 적 격파 시 경험치 부여 & 레벨업 처리
+    if (target.currentHp <= 0) {
+      detailMsg += ` <b style="color:#ef4444;">💥(쓰러짐!)</b>`;
+      if (isPlayerAttacker) {
+        const gainedExp = Math.max(20, target.level * 35);
+        detailMsg += ` <span style="color:#38bdf8;">(+${gainedExp} EXP)</span>`;
+
+        // 출전 유닛 전체 경험치 분배
+        playerAliveUnits.forEach(pUnit => {
+          const lvUps = addExpToPokemon(pUnit, gainedExp);
+          if (lvUps > 0) {
+            logLines.push(`🎉 <b>[LEVEL UP!]</b> ${pUnit.name} 이(가) <b style="color:#f1c40f;">Lv.${pUnit.level}</b> (으)로 레벨업했습니다! (스탯 재계산 완료)`);
+          }
+        });
+      }
+    }
+
+    logLines.push(detailMsg);
   }
 
-  // 체력 바 UI 업데이트
   renderBattleArenaUnits();
 
   // 승패 판정
   const isPlayerAlive = [...currentBattleState.playerFront, ...currentBattleState.playerBack].some(u => u && u.currentHp > 0);
   const isEnemyAlive = [...currentBattleState.enemyFront, ...currentBattleState.enemyBack].some(u => u && u.currentHp > 0);
 
+  const curRankStr = RANKS[gameState.player.rankIndex];
+
   if (!isEnemyAlive) {
-    logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [승리] 체육관 관장의 포켓몬을 모두 격파했습니다! (+200 Gold, +20 Gem)</span>`);
+    // 🌟 승리 시 승급 판정 처리
+    if (curRankStr === 'CHAMPION') {
+      logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [챔피언 방어 성공] 챔피언 자리를 지켜냈습니다! (+300 Gold, +30 Gem)</span>`);
+    } else if (curRankStr === 'ELITE_FOUR') {
+      if (gameState.player.eliteWins < 4) {
+        gameState.player.eliteWins += 1;
+        if (gameState.player.eliteWins === 4) {
+          logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1rem;">🔥 [사천왕 4연승 달성!] 마침내 챔피언 도전권이 해금되었습니다!</span>`);
+        } else {
+          logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [사천왕 승리] ${gameState.player.eliteWins}/4번째 사천왕 격파!</span>`);
+        }
+      } else {
+        // 챔피언 격파!
+        gameState.player.rankIndex = RANKS.indexOf('CHAMPION');
+        logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1.1rem;">🏆 [최종 챔피언 등극!] 챔피언을 쓰러뜨리고 세계 챔피언이 되었습니다!</span>`);
+      }
+    } else {
+      // 일반 Z~A 랭크
+      if (gameState.player.trainerWins < 3) {
+        gameState.player.trainerWins += 1;
+        if (gameState.player.trainerWins === 3) {
+          logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1rem;">🔥 [3연승 성공!] ${curRankStr}-랭크 관장 승급전 도전권 해금!</span>`);
+        } else {
+          logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [트레이너 승리] ${gameState.player.trainerWins}/3연승 달성!</span>`);
+        }
+      } else {
+        // 관장 격파 -> 승급!
+        gameState.player.rankIndex += 1;
+        gameState.player.trainerWins = 0;
+        const newRankStr = getPlayerRankName();
+        logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1.1rem;">🎊 [관장 격파 승급!] 축하합니다! ${newRankStr}(으)로 승급하셨습니다!</span>`);
+      }
+    }
+
     gameState.player.gold += 200;
     gameState.player.gem += 20;
     updateTopBarUI();
     currentBattleState.isFinished = true;
     nextBtn.style.display = 'none';
     document.getElementById('startBattleBtn').style.display = 'block';
+
   } else if (!isPlayerAlive) {
-    logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [패배] 아군 포켓몬 전원이 쓰러졌습니다... 다시 도전하세요!</span>`);
+    // 🌟 패배 시 초기화 판정 처리
+    if (curRankStr === 'ELITE_FOUR') {
+      gameState.player.eliteWins = 0; // 사천왕 1번부터 리셋
+      logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [사천왕 패배] 사천왕 도전은 1번 사천왕부터 다시 도전해야 합니다!</span>`);
+    } else if (curRankStr !== 'CHAMPION') {
+      if (gameState.player.trainerWins < 3) {
+        gameState.player.trainerWins = 0; // 3연승 패배 시 첫번째 트레이너부터 리셋
+        logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [트레이너 패배] 3연승 실패! 첫 번째 트레이너부터 다시 도전해야 합니다.</span>`);
+      } else {
+        logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [관장전 패배] 관장 승급전 실패... 다시 관장전부터 도전하세요.</span>`);
+      }
+    }
     currentBattleState.isFinished = true;
     nextBtn.style.display = 'none';
     document.getElementById('startBattleBtn').style.display = 'block';
@@ -435,7 +647,6 @@ function nextTurnGymBattle() {
     nextBtn.innerText = `⚡ ${currentBattleState.round}라운드 실행 ➡️`;
   }
 
-  // 대사창에 전체 행동 순차 기록 및 자동으로 맨 아래 스크롤
   dialogue.innerHTML = logLines.join('<br>');
   dialogue.scrollTop = dialogue.scrollHeight;
 }

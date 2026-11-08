@@ -54,21 +54,19 @@ body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-dark); 
 .inventory-card:hover { transform: translateY(-4px); border-color: var(--accent-yellow); }
 .inventory-card img { width: 70px; height: 70px; object-fit: contain; }
 
-/* ==========================================
- * 세븐나이츠 2열 배틀 & 스크롤 순차 로그 박스
- * ========================================== */
+/* 배틀 아레나 & 경험치 바 추가 */
 .battle-field { display: flex; flex-direction: column; gap: 12px; }
 .arena-display {
-  position: relative; height: 400px;
+  position: relative; height: 410px;
   background: linear-gradient(180deg, #121826 0%, #1a2639 35%, #2a4734 36%, #1b3322 100%);
   border: 3px solid var(--accent-yellow); border-radius: 14px;
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5);
   display: flex; flex-direction: column; justify-content: space-between; padding: 12px 20px; overflow: hidden;
 }
 
-.sk-top-hud { display: flex; justify-content: space-between; align-items: center; z-index: 2; background: rgba(0, 0, 0, 0.5); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(243, 156, 18, 0.4); }
+.sk-top-hud { display: flex; justify-content: space-between; align-items: center; z-index: 2; background: rgba(0, 0, 0, 0.6); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(243, 156, 18, 0.4); }
 .sk-stage-name { font-size: 0.95rem; font-weight: bold; color: var(--accent-yellow); }
-.sk-rank-info { font-size: 0.85rem; font-weight: 600; color: #ecf0f1; }
+.sk-synergy-tag { font-size: 0.8rem; font-weight: bold; color: #2ecc71; background: rgba(0, 0, 0, 0.6); padding: 2px 8px; border-radius: 10px; border: 1px solid #2ecc71; }
 
 .sk-battle-zone { display: flex; justify-content: space-between; align-items: center; flex: 1; padding: 10px; z-index: 2; }
 .sk-team-side { display: flex; gap: 20px; align-items: center; }
@@ -78,23 +76,25 @@ body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-dark); 
 .sk-unit { display: flex; flex-direction: column; align-items: center; position: relative; transition: all 0.3s ease; }
 .sk-unit.fainted { opacity: 0.25; filter: grayscale(100%); }
 
-.sk-hp-badge { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent-yellow); border-radius: 6px; padding: 2px 5px; width: 85px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); margin-bottom: 3px; }
+.sk-hp-badge { background: rgba(15, 23, 42, 0.9); border: 1px solid var(--accent-yellow); border-radius: 6px; padding: 2px 5px; width: 88px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); margin-bottom: 3px; }
 .sk-unit-info { display: flex; justify-content: space-between; font-size: 0.65rem; font-weight: bold; color: #ffffff; margin-bottom: 2px; }
 .sk-unit-lvl { color: #f1c40f; }
 .sk-hp-bg { width: 100%; height: 5px; background: #222; border-radius: 3px; overflow: hidden; border: 1px solid #000; }
 .sk-hp-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #27ae60); width: 100%; transition: width 0.4s ease; }
 .sk-hp-fill.enemy { background: linear-gradient(90deg, #e74c3c, #c0392b); }
 
+.sk-exp-bg { width: 100%; height: 3px; background: #111; border-radius: 2px; overflow: hidden; margin-top: 2px; }
+.sk-exp-fill { height: 100%; background: #38bdf8; width: 0%; transition: width 0.3s ease; }
+
 .sk-sprite-wrapper { position: relative; display: flex; justify-content: center; align-items: center; }
 .sk-sprite { width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7)); }
 .sk-sprite.flip { transform: scaleX(-1); }
 .sk-shadow { position: absolute; bottom: -3px; width: 45px; height: 9px; background: rgba(0, 0, 0, 0.45); border-radius: 50%; z-index: -1; }
 
-/* 순차 행동 로그 출력 대사창 */
 .sk-dialogue-box {
   background: rgba(15, 23, 42, 0.95); border: 2px solid var(--accent-yellow);
-  border-radius: 10px; padding: 12px 18px; height: 110px; overflow-y: auto;
-  font-size: 0.88rem; font-weight: 600; color: #ffffff; line-height: 1.5;
+  border-radius: 10px; padding: 12px 18px; height: 125px; overflow-y: auto;
+  font-size: 0.88rem; font-weight: 600; color: #ffffff; line-height: 1.55;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 .sk-dialogue-box::-webkit-scrollbar { width: 6px; }
