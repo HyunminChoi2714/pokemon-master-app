@@ -17,11 +17,13 @@ function switchTab(tabId, evt) {
   }
 
   // 대상 시설 패널 활성화
-  const targetPanel = document.getElementById('tab-' + tabId);
+  const targetPanel = document.getElementById('tab-${tabId}');
   if (targetPanel) {
     targetPanel.classList.add('active');
   }
-
+  if (tabId === 'village' && typeof refreshVillageUI === 'function') {
+    refreshVillageUI();
+  }
   renderUI();
 }
 

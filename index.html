@@ -23,13 +23,23 @@
   </header>
 
   <main>
-    <!-- 메인 3D 클래시 오브 클랜 마을 필드 -->
-    <div id="tab-village" class="facility-panel active">
-      <div id="village3dContainer" class="village-3d-viewport"></div>
-      <div class="village-controls-hint">
-        💡 <b>마우스 드래그</b>: 건물 위치 이동 | <b>클릭</b>: 시설 입장
-      </div>
+<!-- 2D 스마트 라이브 마을 필드 -->
+<div id="tab-village" class="facility-panel active">
+  <div id="village2dField" class="village-2d-field">
+    <!-- 배경에 흘러가는 공중 구름 애니메이션 -->
+    <div class="ambient-clouds">
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
     </div>
+
+    <!-- 2D 거점 건물 노드 레이어 -->
+    <div id="buildingNodesContainer" class="building-nodes-container"></div>
+  </div>
+
+  <div class="village-controls-hint">
+    ✨ <b>건물 클릭</b>: 시설 입장 | 각 시설의 실시간 상태가 간판에 표시됩니다.
+  </div>
+</div>
 
     <!-- 시설 팝업/패널 (파티, 체육관, 상점 등) -->
     <div id="tab-party" class="facility-panel">
@@ -158,6 +168,7 @@
   <script src="src/engine/battle.js"></script>
   <script src="src/engine/ui.js"></script>
   <!-- 3D 마을 관리 모듈 -->
-  <script src="src/engine/village3d.js"></script>
+  <script src="src/engine/village.js"></script>
+  <script src="src/ui/party.js"></script>
 </body>
 </html>
