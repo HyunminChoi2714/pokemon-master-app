@@ -1,16 +1,17 @@
 /**
- * src/main.js - 앱 진입점
+ * src/main.js - 게임 초기화 및 전역 이벤트 연결
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
-  // 데이터셋 초기화
-  if (typeof loadPokemonDatabase === 'function') {
-    await loadPokemonDatabase();
+document.addEventListener('DOMContentLoaded', () => {
+  // 상단 재화 바 최신화
+  if (typeof updateTopBarUI === 'function') {
+    updateTopBarUI();
   }
-  
-  // 상단 바 및 기본 마을 화면 렌더링
-  if (typeof updateTopBarUI === 'function') updateTopBarUI();
-  if (typeof switchTab === 'function') switchTab('village');
-  
-  console.log("🎮 포켓몬 게임 시스템 초기화 완료!");
+
+  // 초기 탭(마을) 강제 활성화 및 건물 렌더링
+  if (typeof switchTab === 'function') {
+    switchTab('village');
+  } else if (typeof refreshVillageUI === 'function') {
+    refreshVillageUI();
+  }
 });
