@@ -331,15 +331,19 @@ nav {
 /* ==========================================
  * 세븐나이츠 2열 진형 (전방 3 / 후방 3) 배틀 스타일
  * ========================================== */
+/* ==========================================
+ * 세븐나이츠 배틀 필드 & 하단 대사 상자
+ * ========================================== */
 .battle-field {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
+/* 아레나 전장 박스 */
 .arena-display {
   position: relative;
-  height: 380px;
+  height: 340px;
   background: linear-gradient(180deg, #121826 0%, #1a2639 35%, #2a4734 36%, #1b3322 100%);
   border: 3px solid #f39c12;
   border-radius: 14px;
@@ -349,6 +353,38 @@ nav {
   justify-content: space-between;
   padding: 12px 20px;
   overflow: hidden;
+}
+
+/* 전장 하단 외부 배틀 안내창 */
+.sk-dialogue-box {
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid #f39c12;
+  border-radius: 10px;
+  padding: 12px 18px;
+  min-height: 52px;
+  font-size: 0.92rem;
+  font-weight: bold;
+  color: #ffffff;
+  line-height: 1.45;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+}
+
+/* 다음 턴 버튼 */
+.sk-next-btn {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  color: #000000;
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+}
+
+.sk-next-btn:disabled {
+  background: #555555;
+  color: #888888;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* 상단 HUD 스테이지 정보 */

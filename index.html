@@ -50,32 +50,32 @@
       <div class="poke-grid" id="inventoryGrid"></div>
     </div>
 
-    <!-- 2. 체육관 (세븐나이츠 스타일 배틀 탭) -->
+    <!-- 2. 체육관 (세븐나이츠 배틀 탭) -->
     <div id="tab-gym" class="facility-panel">
       <div class="battle-field">
+        <!-- 1) 메인 배틀 아레나 (포켓몬 전장) -->
         <div class="arena-display">
           <div class="sk-top-hud">
             <div class="sk-stage-name" id="stageTitle">🏛️ Z-랭크 1단계 관장 도전전</div>
             <div class="sk-rank-info" id="rankProgress">승급 포인트: 0 / 100</div>
           </div>
 
-          <!-- 메인 전투 전장 -->
           <div class="sk-battle-zone">
             <div class="sk-team-side player-side" id="playerBattleSide"></div>
             <div class="sk-vs-badge">VS</div>
             <div class="sk-team-side enemy-side" id="enemyBattleSide"></div>
           </div>
-
-          <!-- 포켓몬 텍스트 대사 상자 -->
-          <div class="sk-dialogue-box" id="battleDialogue">
-            ⚔️ 배틀 준비 완료. '승급 배틀 시작' 버튼을 눌러 전투를 진행하세요.
-          </div>
         </div>
 
-        <!-- 하단 조작 버튼 -->
+        <!-- 2) 전장 외부 하단 배틀 안내 대사 상자 -->
+        <div class="sk-dialogue-box" id="battleDialogue">
+          ⚔️ 배틀 준비 완료. '승급 배틀 시작' 버튼을 눌러 전투를 진행하세요.
+        </div>
+
+        <!-- 3) 하단 조작 버튼 -->
         <div class="sk-bottom-control">
           <button class="action-btn sk-start-btn" id="startBattleBtn" onclick="startBattle()">⚔️ 승급 배틀 시작</button>
-          <button class="action-btn sk-next-btn" id="nextTurnBtn" onclick="nextTurn()" style="display:none;">다음 턴 ➡️</button>
+          <button class="action-btn sk-next-btn" id="nextTurnBtn" onclick="nextTurn()" style="display:none;">다음 턴 (1턴) ➡️</button>
         </div>
       </div>
     </div>

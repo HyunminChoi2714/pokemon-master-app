@@ -1,31 +1,34 @@
 /**
- * battle.js - [다음 턴] 수동 진행 & 배틀 종료 후 포켓몬 센터 자동 치료 엔진
+ * battle.js - 1턴 = 필드의 모든 포켓몬 스피드 순 1회 행동 턴 엔진
  */
 
 const battleState = {
   active: false,
+  isProcessing: false,
   round: 1,
-  queue: [],
   playerTeam: [],
   enemyTeam: []
 };
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /**
  * 승급 배틀 시작 함수
  */
 function startBattle() {
-  // 배틀 전 모든 아군 HP 완치 (자동 준비)
+  // 포켓몬 센터 자동 치료
   gameState.inventory.forEach(p => p.currentHp = p.maxHp);
 
   const playerTeam = [...gameState.squad.front, ...gameState.squad.back]
     .filter(p => p !== null && p.currentHp > 0);
 
   if (playerTeam.length === 0) {
-    alert('전투 가능한 포켓몬이 파티에 없습니다! 파티를 배치해 주세요.');
+    alert('전투 가능한 포켓몬이 파티에 없습니다!');
     return;
   }
 
-  // 적 파티 6마리 생성 (2열 진형)
   const enemyTeam = [
     createPokemonInstance(25, 7),
     createPokemonInstance(4, 7),
@@ -36,117 +39,122 @@ function startBattle() {
   ];
 
   battleState.active = true;
+  battleState.isProcessing = false;
   battleState.round = 1;
   battleState.playerTeam = playerTeam;
   battleState.enemyTeam = enemyTeam;
-  battleState.queue = [];
 
-  // 버튼 토글
   document.getElementById('startBattleBtn').style.display = 'none';
-  document.getElementById('nextTurnBtn').style.display = 'block';
+  const nextBtn = document.getElementById('nextTurnBtn');
+  nextBtn.style.display = 'block';
+  nextBtn.disabled = false;
+  nextBtn.innerText = `다음 턴 (${battleState.round}턴) ➡️`;
 
   renderBattleArena(playerTeam, enemyTeam);
-  setDialogueText("⚔️ 승급 배틀이 시작되었습니다! <b>'다음 턴 ➡️'</b> 버튼을 눌러 첫 기술을 시전하세요.");
+  setDialogueText("⚔️ 승급 배틀이 시작되었습니다! <b>'다음 턴'</b> 버튼을 누르면 1턴 동안 모든 포켓몬이 순서대로 공격합니다.");
 }
 
 /**
- * [다음 턴 ➡️] 버튼 클릭 시 호출되는 함수
+ * [다음 턴 ➡️] 클릭 시: 필드의 모든 생존 포켓몬이 스피드 순서대로 1회씩 공격
  */
-function nextTurn() {
-  if (!battleState.active) return;
+async function nextTurn() {
+  if (!battleState.active || battleState.isProcessing) return;
 
   const activePlayer = battleState.playerTeam.filter(p => p.currentHp > 0);
-  const activeEnemy = battleState.enemyTeam.filter(p => p.currentHp > 0);
+  const activeEnemy = battleState.enemyTeam.filter(e => e.currentHp > 0);
 
-  // 1. 승패 판정 검사
   if (activePlayer.length === 0 || activeEnemy.length === 0) {
     finishBattle(activePlayer.length > 0);
     return;
   }
 
-  // 2. 현재 라운드 큐가 비어있으면 스피드(spd) 기준으로 큐 재생성
-  if (battleState.queue.length === 0) {
-    const queueCandidates = [
-      ...activePlayer.map(p => ({ poke: p, isPlayer: true })),
-      ...activeEnemy.map(e => ({ poke: e, isPlayer: false }))
-    ].sort((a, b) => {
-      if (b.poke.spd === a.poke.spd) return Math.random() - 0.5;
-      return b.poke.spd - a.poke.spd;
-    });
-
-    battleState.queue = queueCandidates;
+  battleState.isProcessing = true;
+  const nextBtn = document.getElementById('nextTurnBtn');
+  if (nextBtn) {
+    nextBtn.disabled = true;
+    nextBtn.innerText = `⏳ 제 ${battleState.round}턴 진행 중...`;
   }
 
-  // 3. 큐에서 가장 빠른 다음 포켓몬 꺼내기
-  let nextUnit = battleState.queue.shift();
+  // 살아있는 모든 포켓몬을 스피드(spd) 내림차순 정렬
+  const turnQueue = [
+    ...activePlayer.map(p => ({ poke: p, isPlayer: true })),
+    ...activeEnemy.map(e => ({ poke: e, isPlayer: false }))
+  ].sort((a, b) => {
+    if (b.poke.spd === a.poke.spd) return Math.random() - 0.5;
+    return b.poke.spd - a.poke.spd;
+  });
 
-  // 이미 사망한 포켓몬 스킵
-  while (nextUnit && nextUnit.poke.currentHp <= 0 && battleState.queue.length > 0) {
-    nextUnit = battleState.queue.shift();
-  }
+  setDialogueText(`⚔️ <b>[제 ${battleState.round}턴 시작]</b> 모든 포켓몬이 스피드 순서대로 행동을 시작합니다.`);
+  await sleep(700);
 
-  if (!nextUnit || nextUnit.poke.currentHp <= 0) {
-    battleState.round++;
-    nextTurn();
-    return;
-  }
+  for (let i = 0; i < turnQueue.length; i++) {
+    const unit = turnQueue[i];
+    const attacker = unit.poke;
+    const isPlayer = unit.isPlayer;
 
-  // 4. 기술 공격 수행
-  const attacker = nextUnit.poke;
-  const isPlayer = nextUnit.isPlayer;
-  const targets = isPlayer
-    ? battleState.enemyTeam.filter(e => e.currentHp > 0)
-    : battleState.playerTeam.filter(p => p.currentHp > 0);
+    // 공격 직전 이미 사망한 포켓몬 스킵
+    if (attacker.currentHp <= 0) continue;
 
-  if (targets.length === 0) {
-    finishBattle(isPlayer);
-    return;
-  }
+    const targets = isPlayer
+      ? battleState.enemyTeam.filter(e => e.currentHp > 0)
+      : battleState.playerTeam.filter(p => p.currentHp > 0);
 
-  const defender = targets[Math.floor(Math.random() * targets.length)];
-  const selectedMoveName = attacker.moves[Math.floor(Math.random() * attacker.moves.length)] || "몸통박치기";
-  const moveData = (typeof MOVES_DB !== 'undefined' && MOVES_DB[selectedMoveName]) || {
-    name: selectedMoveName, type: attacker.type1, power: 40, accuracy: 100
-  };
+    if (targets.length === 0) break;
 
-  const hitRoll = Math.random() * 100;
-  const sideTag = isPlayer ? "<span style='color:#2ecc71;'>[아군]</span>" : "<span style='color:#e74c3c;'>[적군]</span>";
+    const defender = targets[Math.floor(Math.random() * targets.length)];
+    const selectedMoveName = attacker.moves[Math.floor(Math.random() * attacker.moves.length)] || "몸통박치기";
+    const moveData = (typeof MOVES_DB !== 'undefined' && MOVES_DB[selectedMoveName]) || {
+      name: selectedMoveName, type: attacker.type1, power: 40, accuracy: 100
+    };
 
-  if (hitRoll > moveData.accuracy) {
-    setDialogueText(`${sideTag} <b>${attacker.name}</b>의 💥<b>[${moveData.name}]</b> 시도! → 빗나갔습니다!`);
-  } else {
-    const typeMult = (typeof TYPE_CHART !== 'undefined' && TYPE_CHART[moveData.type] && TYPE_CHART[moveData.type][defender.type1]) || 1.0;
-    let damage = Math.max(5, Math.floor((attacker.atk / Math.max(1, defender.def)) * (moveData.power / 4) * typeMult));
+    const hitRoll = Math.random() * 100;
+    const sideTag = isPlayer ? "<span style='color:#2ecc71;'>[아군]</span>" : "<span style='color:#e74c3c;'>[적군]</span>";
 
-    if (isPlayer && gameState.pokedex.has(252)) {
-      damage = Math.floor(damage * 1.1);
+    if (hitRoll > moveData.accuracy) {
+      setDialogueText(`${sideTag} <b>${attacker.name}</b>(Spd ${attacker.spd})의 💥<b>[${moveData.name}]</b>! → 빗나갔습니다!`);
+    } else {
+      const typeMult = (typeof TYPE_CHART !== 'undefined' && TYPE_CHART[moveData.type] && TYPE_CHART[moveData.type][defender.type1]) || 1.0;
+      let damage = Math.max(5, Math.floor((attacker.atk / Math.max(1, defender.def)) * (moveData.power / 4) * typeMult));
+
+      if (isPlayer && gameState.pokedex.has(252)) {
+        damage = Math.floor(damage * 1.1);
+      }
+
+      defender.currentHp = Math.max(0, defender.currentHp - damage);
+
+      let effectMsg = typeMult > 1.0 ? " 🔥 (효과가 굉장했다!)" : (typeMult < 1.0 ? " 🛡️ (효과가 별로다...)" : "");
+      let faintedMsg = defender.currentHp <= 0 ? ` 💀 <b>${defender.name}</b> 쓰러짐!` : '';
+
+      setDialogueText(`${sideTag} <b>${attacker.name}</b>의 💥<b>[${moveData.name}]</b>! <b>${defender.name}</b>에게 <b>${damage}</b> 데미지!${effectMsg}${faintedMsg}`);
     }
 
-    defender.currentHp = Math.max(0, defender.currentHp - damage);
+    // 전장 실시간 HP 및 상태 업데이트
+    renderBattleArena(battleState.playerTeam, battleState.enemyTeam);
+    await sleep(900);
 
-    let effectMsg = typeMult > 1.0 ? " 🔥 (효과가 굉장했다!)" : (typeMult < 1.0 ? " 🛡️ (효과가 별로다...)" : "");
-    let faintedMsg = defender.currentHp <= 0 ? ` 💀 <b>${defender.name}</b> 쓰러짐!` : '';
+    // 승패 중간 판정
+    const curPlayerAlive = battleState.playerTeam.filter(p => p.currentHp > 0).length;
+    const curEnemyAlive = battleState.enemyTeam.filter(e => e.currentHp > 0).length;
 
-    setDialogueText(`${sideTag} <b>${attacker.name}</b>의 💥<b>[${moveData.name}]</b>! <b>${defender.name}</b>에게 <b>${damage}</b> 데미지!${effectMsg}${faintedMsg}`);
+    if (curPlayerAlive === 0 || curEnemyAlive === 0) {
+      finishBattle(curPlayerAlive > 0);
+      battleState.isProcessing = false;
+      return;
+    }
   }
 
-  // 실시간 아레나 HP바 감량 연출 갱신
-  renderBattleArena(battleState.playerTeam, battleState.enemyTeam);
+  // 1턴(전원 행동) 종료 후
+  battleState.round++;
+  battleState.isProcessing = false;
 
-  // 공격 후 승패 판정 검사
-  const postPlayerAlive = battleState.playerTeam.filter(p => p.currentHp > 0).length;
-  const postEnemyAlive = battleState.enemyTeam.filter(e => e.currentHp > 0).length;
-
-  if (postPlayerAlive === 0 || postEnemyAlive === 0) {
-    document.getElementById('nextTurnBtn').innerText = "결과 확인 🏆";
-  } else {
-    document.getElementById('nextTurnBtn').innerText = "다음 턴 ➡️";
+  if (nextBtn) {
+    nextBtn.disabled = false;
+    nextBtn.innerText = `다음 턴 (${battleState.round}턴) ➡️`;
   }
+
+  setDialogueText(`✅ <b>[제 ${battleState.round - 1}턴 완료]</b> 모든 포켓몬이 행동을 마쳤습니다. 다음 턴을 시작하려면 버튼을 누르세요.`);
 }
 
-/**
- * 대사 상자 텍스트 설정 함수
- */
 function setDialogueText(htmlContent) {
   const dialogueEl = document.getElementById('battleDialogue');
   if (dialogueEl) {
@@ -154,17 +162,15 @@ function setDialogueText(htmlContent) {
   }
 }
 
-/**
- * 배틀 종료 및 자동 완치 처리
- */
 function finishBattle(isPlayerWin) {
   battleState.active = false;
+  battleState.isProcessing = false;
 
   document.getElementById('startBattleBtn').style.display = 'block';
   document.getElementById('startBattleBtn').disabled = false;
   document.getElementById('nextTurnBtn').style.display = 'none';
 
-  // ★ 핵심: 배틀 종료 시 포켓몬 센터 자동 치료 실행
+  // 배틀 종료 시 완치
   gameState.inventory.forEach(p => p.currentHp = p.maxHp);
 
   if (isPlayerWin) {
@@ -179,9 +185,9 @@ function finishBattle(isPlayerWin) {
     gameState.player.candy += rewardCandy;
     gameState.player.rankPoints += 25;
 
-    setDialogueText(`🎉 <b>배틀 승리!</b> P+25, ${rewardGold} Gold, ${rewardCandy} Candy 획득!<br><span style="color:#2ecc71;">🏥 포켓몬 센터에서 모든 포켓몬의 체력이 자동으로 완치되었습니다.</span>`);
+    setDialogueText(`🎉 <b>배틀 승리!</b> 승급 P+25, ${rewardGold} Gold, ${rewardCandy} Candy 획득!<br><span style="color:#2ecc71;">🏥 포켓몬 센터에서 모든 포켓몬의 체력이 완치되었습니다.</span>`);
   } else {
-    setDialogueText(`❌ <b>배틀 패배...</b><br><span style="color:#2ecc71;">🏥 포켓몬 센터에서 쓰러진 모든 포켓몬을 치료하고 완치시켰습니다.</span>`);
+    setDialogueText(`❌ <b>배틀 패배...</b><br><span style="color:#2ecc71;">🏥 포켓몬 센터에서 쓰러진 포켓몬을 완전히 치료했습니다. 다시 도전하세요!</span>`);
   }
 
   renderBattleArena(battleState.playerTeam, battleState.enemyTeam);
