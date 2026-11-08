@@ -329,7 +329,7 @@ nav {
 }
 
 /* ==========================================
- * 세븐나이츠 스타일 배틀 필드 (Seven Knights UI)
+ * 세븐나이츠 2열 진형 (전방 3 / 후방 3) 배틀 스타일
  * ========================================== */
 .battle-field {
   display: flex;
@@ -347,11 +347,11 @@ nav {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 15px;
+  padding: 12px 20px;
   overflow: hidden;
 }
 
-/* 상단 HUD 스테이지 제목 */
+/* 상단 HUD 스테이지 정보 */
 .sk-top-hud {
   display: flex;
   justify-content: space-between;
@@ -364,32 +364,40 @@ nav {
 }
 
 .sk-stage-name {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: bold;
   color: #f39c12;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .sk-rank-info {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   color: #ecf0f1;
 }
 
-/* 전투 필드 구도 (사선 원근감) */
+/* 전투 구도 (전방/후방 2열 레이아웃) */
 .sk-battle-zone {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex: 1;
-  padding: 20px 40px;
+  padding: 10px 20px;
   z-index: 2;
 }
 
+/* 팀 서브 라인 (전방 3마리 / 후방 3마리 묶음) */
 .sk-team-side {
   display: flex;
-  gap: 20px;
+  gap: 25px;
   align-items: center;
+}
+
+.sk-line {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
 }
 
 .sk-vs-badge {
@@ -400,7 +408,7 @@ nav {
   text-shadow: 0 0 10px rgba(243, 156, 18, 0.8), 0 0 20px rgba(233, 69, 96, 0.8);
 }
 
-/* 유닛 개체 스타일 (머리 위 HP바 + 스프라이트 + 그림자) */
+/* 2열 세로 배치 유닛 크기 및 HP바 */
 .sk-unit {
   display: flex;
   flex-direction: column;
@@ -414,21 +422,20 @@ nav {
   filter: grayscale(100%);
 }
 
-/* 머리 위 부유형 HP바 및 이름표 */
 .sk-hp-badge {
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid #f39c12;
   border-radius: 6px;
-  padding: 3px 6px;
-  width: 100px;
+  padding: 2px 5px;
+  width: 90px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-  margin-bottom: 8px;
+  margin-bottom: 3px;
 }
 
 .sk-unit-info {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: bold;
   color: #ffffff;
   margin-bottom: 2px;
@@ -440,7 +447,7 @@ nav {
 
 .sk-hp-bg {
   width: 100%;
-  height: 6px;
+  height: 5px;
   background: #222;
   border-radius: 3px;
   overflow: hidden;
@@ -458,7 +465,7 @@ nav {
   background: linear-gradient(90deg, #e74c3c, #c0392b);
 }
 
-/* 포켓몬 이미지 스프라이트 & 대면 반전 */
+/* 포켓몬 스프라이트 */
 .sk-sprite-wrapper {
   position: relative;
   display: flex;
@@ -467,10 +474,10 @@ nav {
 }
 
 .sk-sprite {
-  width: 75px;
-  height: 75px;
+  width: 60px;
+  height: 60px;
   object-fit: contain;
-  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7));
 }
 
 .sk-sprite.flip {
@@ -479,9 +486,9 @@ nav {
 
 .sk-shadow {
   position: absolute;
-  bottom: -4px;
-  width: 55px;
-  height: 12px;
+  bottom: -3px;
+  width: 45px;
+  height: 10px;
   background: rgba(0, 0, 0, 0.45);
   border-radius: 50%;
   z-index: -1;

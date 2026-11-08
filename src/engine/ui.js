@@ -252,10 +252,7 @@ function renderPokedex() {
 }
 
 /**
- * 배틀 아레나 UI 렌더링
- */
-/**
- * 세븐나이츠 스타일 배틀 아레나 UI 렌더링 (머리 위 부유형 HP바 + 반전 스프라이트)
+ * 전방 3마리 / 후방 3마리 2열 진형 배틀 아레나 UI 렌더링
  * @param {Array} playerTeam - 플레이어 파티
  * @param {Array} enemyTeam - 관장 포켓몬 파티
  */
@@ -264,53 +261,57 @@ function renderBattleArena(playerTeam, enemyTeam) {
   const eSide = document.getElementById('enemyBattleSide');
   if (!pSide || !eSide) return;
 
-  // 아군 파티 렌더링 (좌측)
-  pSide.innerHTML = playerTeam.map(p => {
+  // 플레이어 파티 전방(front) / 후방(back) 라인 추출
+  const playerBack = gameState.squad.back.filter(p => p !== null);
+  const playerFront = gameState.squad.front.filter(p => p !== null);
+
+  // 적 파티 전방 / 후방 추출 (최대 6마리 대응)
+  const enemyFront = enemyTeam.slice(0, 3);
+  const enemyBack = enemyTeam.slice(3, 6);
+
+  const renderUnit = (p, isEnemy = false) => {
+    if (!p) return '';
     const isFainted = p.currentHp <= 0;
     const hpPct = Math.max(0, Math.min(100, (p.currentHp / p.maxHp) * 100));
 
     return `
-      <div class="sk-unit ${isFainted ? 'fainted' : ''}">
+      <div class="sk-unit ${isEnemy ? 'enemy' : ''} ${isFainted ? 'fainted' : ''}">
         <div class="sk-hp-badge">
           <div class="sk-unit-info">
             <span class="sk-unit-lvl">Lv.${p.level}</span>
             <span class="sk-unit-name">${p.name}</span>
           </div>
           <div class="sk-hp-bg">
-            <div class="sk-hp-fill" style="width:${hpPct}%;"></div>
+            <div class="sk-hp-fill ${isEnemy ? 'enemy' : ''}" style="width:${hpPct}%;"></div>
           </div>
         </div>
         <div class="sk-sprite-wrapper">
-          <img src="${p.img}" class="sk-sprite" alt="${p.name}" />
+          <img src="${p.img}" class="sk-sprite ${isEnemy ? 'flip' : ''}" alt="${p.name}" />
           <div class="sk-shadow"></div>
         </div>
       </div>
     `;
-  }).join('');
+  };
 
-  // 적군 파티 렌더링 (우측 - 좌우 반전 이미지 적용)
-  eSide.innerHTML = enemyTeam.map(e => {
-    const isFainted = e.currentHp <= 0;
-    const hpPct = Math.max(0, Math.min(100, (e.currentHp / e.maxHp) * 100));
+  // 아군 (좌측: 후방 라인 -> 전방 라인)
+  pSide.innerHTML = `
+    <div class="sk-line back-line">
+      ${playerBack.map(p => renderUnit(p, false)).join('')}
+    </div>
+    <div class="sk-line front-line">
+      ${playerFront.map(p => renderUnit(p, false)).join('')}
+    </div>
+  `;
 
-    return `
-      <div class="sk-unit enemy ${isFainted ? 'fainted' : ''}">
-        <div class="sk-hp-badge">
-          <div class="sk-unit-info">
-            <span class="sk-unit-lvl">Lv.${e.level}</span>
-            <span class="sk-unit-name">${e.name}</span>
-          </div>
-          <div class="sk-hp-bg">
-            <div class="sk-hp-fill enemy" style="width:${hpPct}%;"></div>
-          </div>
-        </div>
-        <div class="sk-sprite-wrapper">
-          <img src="${e.img}" class="sk-sprite flip" alt="${e.name}" />
-          <div class="sk-shadow"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  // 적군 (우측: 전방 라인 -> 후방 라인)
+  eSide.innerHTML = `
+    <div class="sk-line front-line">
+      ${enemyFront.map(e => renderUnit(e, true)).join('')}
+    </div>
+    <div class="sk-line back-line">
+      ${enemyBack.map(e => renderUnit(e, true)).join('')}
+    </div>
+  `;
 }
 
 // DOM 생성이 완료되는 즉시 게임 데이터 및 UI 초기화
