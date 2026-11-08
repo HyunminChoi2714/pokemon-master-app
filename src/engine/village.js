@@ -1,5 +1,5 @@
 /**
- * src/engine/village.js - 2D 라이브 마을 UI & 클릭 이벤트 직접 바인딩 엔진
+ * src/engine/village.js - 2D 라이브 마을 UI & 이벤트 위임(Event Delegation) 기반 클릭 보장 엔진
  */
 
 const BUILDINGS_CONFIG = [
@@ -11,12 +11,15 @@ const BUILDINGS_CONFIG = [
   { id: 'dex', name: '전국 도감 타워', icon: '📖', defaultBadge: '수집 도감' }
 ];
 
+let isVillageInitialized = false;
+
 function init2DVillage() {
   renderVillageNodes();
+  bindVillageClickEvents();
 }
 
 /**
- * 건물 카드를 생성하고 클릭 이벤트를 직접 동적 연결
+ * 마을 건물 노드 생성
  */
 function renderVillageNodes() {
   const container = document.getElementById('buildingNodesContainer');
@@ -28,7 +31,7 @@ function renderVillageNodes() {
       try {
         dynamicBadge = getDynamicBadge(b.id, b.defaultBadge);
       } catch (e) {
-        console.warn(`Badge error on ${b.id}:`, e);
+        console.warn(`Badge error:`, e);
       }
 
       return `
@@ -39,29 +42,35 @@ function renderVillageNodes() {
         </div>
       `;
     }).join('');
-
-    // 인라인 HTML 대신 JS Event Listener를 직접 바인딩하여 클릭 문제 근본적 해결
-    container.querySelectorAll('.building-node-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const targetId = card.getAttribute('data-building-id');
-        if (typeof window.switchTab === 'function') {
-          window.switchTab(targetId);
-        } else if (typeof switchTab === 'function') {
-          switchTab(targetId);
-        }
-      });
-    });
-
   } catch (err) {
-    console.error("Village node render error:", err);
+    console.error("Village render error:", err);
   }
 }
 
 /**
- * 실시간 상태 간판 보완
+ * 이벤트 위임(Event Delegation)으로 어떤 요소나 자식 노드가 클릭되어도 100% 포착
  */
+function bindVillageClickEvents() {
+  if (isVillageInitialized) return;
+  
+  const container = document.getElementById('buildingNodesContainer');
+  if (!container) return;
+
+  container.addEventListener('click', (e) => {
+    const card = e.target.closest('.building-node-card');
+    if (card) {
+      const targetId = card.getAttribute('data-building-id');
+      if (typeof window.switchTab === 'function') {
+        window.switchTab(targetId);
+      } else if (typeof switchTab === 'function') {
+        switchTab(targetId);
+      }
+    }
+  });
+
+  isVillageInitialized = true;
+}
+
 function getDynamicBadge(buildingId, defaultText) {
   if (typeof gameState === 'undefined' || !gameState) return defaultText;
 
@@ -87,7 +96,6 @@ function refreshVillageUI() {
   renderVillageNodes();
 }
 
-// 전역 등록
 window.init2DVillage = init2DVillage;
 window.renderVillageNodes = renderVillageNodes;
 window.refreshVillageUI = refreshVillageUI;

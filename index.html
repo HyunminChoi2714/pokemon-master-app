@@ -26,9 +26,9 @@
     <main class="content-area">
       <!-- 1. 마을 탭 -->
       <section id="tab-village" class="facility-panel active">
-        <div class="village-header">
+        <div class="village-header" style="margin-bottom: 12px;">
           <h2>🏰 라이브 마을 필드</h2>
-          <p>원하는 건물을 선택하여 시설로 이동하세요.</p>
+          <p style="color: #cbd5e1; font-size: 0.9rem;">원하는 건물을 선택하여 시설로 이동하세요.</p>
         </div>
         <div id="village2dField" class="village-2d-field">
           <div class="ambient-clouds">
@@ -64,7 +64,7 @@
         </div>
       </section>
 
-      <!-- 3. 체육관 탭 (승급전 & EXP 배틀 아레나) -->
+      <!-- 3. 체육관 탭 -->
       <section id="tab-gym" class="facility-panel">
         <div class="panel-header">
           <h2>⚔️ 포켓몬 랭크 승급 아레나</h2>
@@ -122,7 +122,7 @@
     </div>
   </div>
 
-  <!-- 육각형 스탯 & 장착 기술 모달 -->
+  <!-- 세부 스탯 모달 -->
   <div id="pokeDetailModal" class="modal-overlay hidden">
     <div class="modal-box stat-detail-modal">
       <div class="modal-header">
@@ -142,7 +142,7 @@
     </div>
   </div>
 
-  <!-- 스크립트 연결 -->
+  <!-- 순서 보장 스크립트 연결 -->
   <script src="src/data/pokemon.js"></script>
   <script src="src/engine/state.js"></script>
   <script src="src/engine/village.js"></script>
