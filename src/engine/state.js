@@ -1,8 +1,7 @@
 /**
- * state.js - 중앙 게임 상태 및 포켓몬 관리 로직
+ * state.js - 중앙 게임 상태 및 포켓몬 관리 로직 (수정본)
  */
 
-// 전역 게임 상태 객체
 const gameState = {
   player: {
     rank: "Z",
@@ -23,29 +22,22 @@ const gameState = {
   }
 };
 
-/**
- * 포켓몬 현재 레벨에 맞춰 습득 가능한 기술 업데이트 (최대 4개)
- * @param {Object} poke - 포켓몬 인스턴스
- */
+let isGameInitialized = false;
+
 function updatePokemonMoves(poke) {
-  const learnset = LEARNSETS_DB[poke.id] || [{ move: "몸통박치기", level: 1 }];
+  const learnset = (typeof LEARNSETS_DB !== 'undefined' && LEARNSETS_DB[poke.id]) || [{ move: "몸통박치기", level: 1 }];
   const availableMoves = learnset
     .filter(l => poke.level >= l.level)
     .map(l => l.move);
   
-  // 최근 습득한 기술 우선으로 최대 4개 보관
   poke.moves = availableMoves.slice(-4);
 }
 
-/**
- * 도감 템플릿 ID를 기반으로 포켓몬 개체 생성
- * @param {number} templateId - 포켓몬 도감 번호
- * @param {number} level - 초기 생성 레벨
- * @returns {Object} 포켓몬 개체 객체
- */
 function createPokemonInstance(templateId, level = 1) {
-  const template = POKEMON_DB.find(p => p.id === templateId) || POKEMON_DB[0];
-  const iv = Math.floor(Math.random() * 32); // 개체값 0~31 Random IV
+  const template = (typeof POKEMON_DB !== 'undefined' && POKEMON_DB.find(p => p.id === templateId)) || {
+    id: 1, name: "이상해씨", type1: "풀", type2: "독", stage: 1, hp: 45, atk: 49, def: 49, spd: 45, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
+  };
+  const iv = Math.floor(Math.random() * 32);
   
   const maxHp = Math.floor(((template.hp * 2 + iv) * level) / 100) + level + 10;
   
@@ -71,29 +63,26 @@ function createPokemonInstance(templateId, level = 1) {
   return instance;
 }
 
-/**
- * 초기 상태 생성 및 기본 포켓몬 지급
- */
 function initGame() {
-  const p1 = createPokemonInstance(1, 5); // 이상해씨
-  const p2 = createPokemonInstance(4, 5); // 파이리
-  const p3 = createPokemonInstance(7, 5); // 꼬부기
+  if (isGameInitialized) return;
+  isGameInitialized = true;
+
+  const p1 = createPokemonInstance(1, 5);
+  const p2 = createPokemonInstance(4, 5);
+  const p3 = createPokemonInstance(7, 5);
 
   gameState.inventory.push(p1, p2, p3);
   gameState.pokedex.add(1).add(4).add(7);
 
-  // 기본 파티 배치
   gameState.squad.front[0] = p1;
   gameState.squad.front[1] = p2;
   gameState.squad.back[0] = p3;
 
-  renderUI();
+  if (typeof renderUI === 'function') {
+    renderUI();
+  }
 }
 
-/**
- * 포켓몬 레벨업 처리 및 능력치/기술 갱신
- * @param {string} uid - 포켓몬 고유 식별자
- */
 function levelUpPokemon(uid) {
   const poke = gameState.inventory.find(p => p.uid === uid);
   if (!poke || gameState.player.candy < 10) return false;
@@ -107,17 +96,13 @@ function levelUpPokemon(uid) {
   poke.spd += 2;
 
   updatePokemonMoves(poke);
-  renderUI();
+  if (typeof renderUI === 'function') renderUI();
   return true;
 }
 
-/**
- * 포켓몬 진화 조건 검사 및 진화 실행
- * @param {string} uid - 포켓몬 고유 식별자
- */
 function evolvePokemon(uid) {
   const poke = gameState.inventory.find(p => p.uid === uid);
-  if (!poke) return false;
+  if (!poke || typeof EVOLUTION_MAP === 'undefined') return false;
 
   const evoInfo = EVOLUTION_MAP[poke.id];
   if (!evoInfo || poke.level < evoInfo.minLevel) return false;
@@ -142,14 +127,10 @@ function evolvePokemon(uid) {
   gameState.pokedex.add(poke.id);
 
   alert(`✨ ${oldName}이(가) ${poke.name}(으)로 진화했습니다! 🎉`);
-  renderUI();
+  if (typeof renderUI === 'function') renderUI();
   return true;
 }
 
-/**
- * 포켓몬 파티 자동 장착 로직
- * @param {Object} poke - 포켓몬 개체
- */
 function equipPokemon(poke) {
   const isAlreadyEquipped = [...gameState.squad.front, ...gameState.squad.back]
     .some(p => p && p.uid === poke.uid);
@@ -162,23 +143,14 @@ function equipPokemon(poke) {
     let emptyBack = gameState.squad.back.findIndex(p => p === null);
     if (emptyBack !== -1) gameState.squad.back[emptyBack] = poke;
   }
-  renderUI();
+  if (typeof renderUI === 'function') renderUI();
 }
 
-/**
- * 파티 슬롯 해제
- * @param {string} line - 'front' 또는 'back'
- * @param {number} index - 슬롯 인덱스 (0~2)
- */
 function removeSlot(line, index) {
   gameState.squad[line][index] = null;
-  renderUI();
+  if (typeof renderUI === 'function') renderUI();
 }
 
-/**
- * 오박사 연구소 포켓몬 소환(채용)
- * @param {number} count - 소환 횟수 (1회 또는 10회)
- */
 function summonPokemon(count) {
   const cost = count * 10;
   if (gameState.player.gem < cost) {
@@ -199,14 +171,13 @@ function summonPokemon(count) {
   }
 
   alert(`🎉 포켓몬 채용 성공!\n획득 포켓몬: ${newPokes.join(', ')}`);
-  renderUI();
+  if (typeof renderUI === 'function') renderUI();
 }
 
-/**
- * 현재 도감 수집률에 기반한 활성 지방 패시브 목록 반환
- */
 function getActiveRegionalPassives() {
   const passives = [];
+  if (typeof REGION_DEFINITIONS === 'undefined') return passives;
+
   REGION_DEFINITIONS.forEach(reg => {
     const count = [...gameState.pokedex].filter(id => id >= reg.minId && id <= reg.maxId).length;
     if (count >= 1) {
@@ -216,11 +187,8 @@ function getActiveRegionalPassives() {
   return passives;
 }
 
-/**
- * 전체 포켓몬 HP 완치
- */
 function healAllPokemon() {
   gameState.inventory.forEach(p => p.currentHp = p.maxHp);
   alert('🏥 모든 포켓몬의 체력이 완치되었습니다!');
-  renderUI();
+  if (typeof renderUI === 'function') renderUI();
 }
