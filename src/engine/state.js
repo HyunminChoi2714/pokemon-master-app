@@ -1,15 +1,103 @@
 /**
- * src/engine/state.js - 승급전 규칙 (3연승/관장/사천왕/챔피언) 및 경험치/레벨업 완전 통합 엔진
+ * src/engine/state.js - 영구적 레벨/EXP 유지 및 자동 진화 엔진
  */
 
 const RANKS = ['Z', 'Y', 'X', 'W', 'V', 'U', 'T', 'S', 'R', 'Q', 'P', 'O', 'N', 'M', 'L', 'K', 'J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A', 'ELITE_FOUR', 'CHAMPION'];
 
+// 포켓몬 진화 데이터베이스 (도달 레벨 및 다음 포켓몬 ID)
+const EVOLUTION_MAP = {
+  // 관동 스타팅 & 초반 포켓몬
+  1: { nextId: 2, minLevel: 16 },   // 이상해씨 -> 이상해풀
+  2: { nextId: 3, minLevel: 32 },   // 이상해풀 -> 이상해꽃
+  4: { nextId: 5, minLevel: 16 },   // 파이리 -> 리자드
+  5: { nextId: 6, minLevel: 36 },   // 리자드 -> 리자몽
+  7: { nextId: 8, minLevel: 16 },   // 꼬부기 -> 어니부기
+  8: { nextId: 9, minLevel: 36 },   // 어니부기 -> 거북왕
+  10: { nextId: 11, minLevel: 7 },  // 캐터피 -> 단데기
+  11: { nextId: 12, minLevel: 10 }, // 단데기 -> 버터플
+  13: { nextId: 14, minLevel: 7 },  // 뿔충이 -> 딱충이
+  14: { nextId: 15, minLevel: 10 }, // 딱충이 -> 독침붕
+  16: { nextId: 17, minLevel: 18 }, // 구구 -> 피전트
+  17: { nextId: 18, minLevel: 36 }, // 피전트 -> 피전투스
+  19: { nextId: 20, minLevel: 20 }, // 꼬렛 -> 레트라
+  21: { nextId: 22, minLevel: 20 }, // 깨비참 -> 깨비드릴조
+  23: { nextId: 24, minLevel: 22 }, // 아보 -> 아보크
+  27: { nextId: 28, minLevel: 22 }, // 모래두지 -> 고지
+  29: { nextId: 30, minLevel: 16 }, // 니드런♀ -> 니드리나
+  32: { nextId: 33, minLevel: 16 }, // 니드런♂ -> 니드리노
+  41: { nextId: 42, minLevel: 22 }, // 주뱃 -> 골뱃
+  43: { nextId: 44, minLevel: 21 }, // 뚜벅쵸 -> 냄새꼬
+  46: { nextId: 47, minLevel: 24 }, // 파라스 -> 파라섹트
+  48: { nextId: 49, minLevel: 31 }, // 콘팡 -> 도나리
+  50: { nextId: 51, minLevel: 26 }, // 디그다 -> 닥트리오
+  52: { nextId: 53, minLevel: 28 }, // 나옹 -> 페르시온
+  54: { nextId: 55, minLevel: 33 }, // 고라파덕 -> 골덕
+  56: { nextId: 57, minLevel: 28 }, // 망키 -> 성원숭
+  60: { nextId: 61, minLevel: 25 }, // 올챙이 -> 수륙챙이
+  63: { nextId: 64, minLevel: 16 }, // 캐이시 -> 윤겔라
+  66: { nextId: 67, minLevel: 28 }, // 알통몬 -> 근육몬
+  69: { nextId: 70, minLevel: 21 }, // 모다피 -> 우츠동
+  72: { nextId: 73, minLevel: 30 }, // 왕눈해 -> 독파리
+  74: { nextId: 75, minLevel: 25 }, // 꼬마돌 -> 데구리
+  77: { nextId: 78, minLevel: 40 }, // 포니타 -> 날쌩마
+  79: { nextId: 80, minLevel: 37 }, // 야돈 -> 야도란
+  81: { nextId: 82, minLevel: 30 }, // 코일 -> 레어코일
+  84: { nextId: 85, minLevel: 31 }, // 두두 -> 두트리오
+  86: { nextId: 87, minLevel: 34 }, // 쥬쥬 -> 쥬레곤
+  88: { nextId: 89, minLevel: 38 }, // 질퍽이 -> 질뻐기
+  92: { nextId: 93, minLevel: 25 }, // 고스통 -> 고스트
+  96: { nextId: 97, minLevel: 26 }, // 슬리프 -> 슬리퍼
+  98: { nextId: 99, minLevel: 28 }, // 크랩 -> 킹크랩
+  100: { nextId: 101, minLevel: 30 },// 찌리리공 -> 붐볼
+  104: { nextId: 105, minLevel: 28 },// 탕구리 -> 텅구리
+  109: { nextId: 110, minLevel: 35 },// 또가스 -> 또도가스
+  111: { nextId: 112, minLevel: 42 },// 뿔카노 -> 코뿌리
+  116: { nextId: 117, minLevel: 32 },// 쏘드라 -> 시드라
+  118: { nextId: 119, minLevel: 33 },// 콘치 -> 왕콘치
+  129: { nextId: 130, minLevel: 20 },// 잉어킹 -> 갸라도스
+  138: { nextId: 139, minLevel: 40 },// 암나이트 -> 암스타
+  140: { nextId: 141, minLevel: 40 },// 투구 -> 투구푸스
+  147: { nextId: 148, minLevel: 30 },// 미뇽 -> 신뇽
+  148: { nextId: 149, minLevel: 55 },// 신뇽 -> 망나뇽
+  246: { nextId: 247, minLevel: 30 },// 애버라스 -> 데기라스
+  247: { nextId: 248, minLevel: 55 },// 데기라스 -> 마기라스
+  371: { nextId: 372, minLevel: 30 },// 아공이 -> 쉘곤
+  372: { nextId: 373, minLevel: 50 },// 쉘곤 -> 보만다
+  374: { nextId: 375, minLevel: 20 },// 메탕 -> 메탕구
+  375: { nextId: 376, minLevel: 45 },// 메탕구 -> 메타그로스
+  // 2~9세대 주요 스타팅
+  152: { nextId: 153, minLevel: 16 }, 153: { nextId: 154, minLevel: 32 },
+  155: { nextId: 156, minLevel: 14 }, 156: { nextId: 157, minLevel: 36 },
+  158: { nextId: 159, minLevel: 18 }, 159: { nextId: 160, minLevel: 30 },
+  252: { nextId: 253, minLevel: 16 }, 253: { nextId: 254, minLevel: 36 },
+  255: { nextId: 256, minLevel: 16 }, 256: { nextId: 257, minLevel: 36 },
+  258: { nextId: 259, minLevel: 16 }, 259: { nextId: 260, minLevel: 36 },
+  387: { nextId: 388, minLevel: 18 }, 388: { nextId: 389, minLevel: 32 },
+  390: { nextId: 391, minLevel: 14 }, 391: { nextId: 392, minLevel: 36 },
+  393: { nextId: 394, minLevel: 16 }, 394: { nextId: 395, minLevel: 36 },
+  495: { nextId: 496, minLevel: 17 }, 496: { nextId: 497, minLevel: 36 },
+  498: { nextId: 499, minLevel: 17 }, 499: { nextId: 500, minLevel: 36 },
+  501: { nextId: 502, minLevel: 17 }, 502: { nextId: 503, minLevel: 36 },
+  650: { nextId: 651, minLevel: 16 }, 651: { nextId: 652, minLevel: 36 },
+  653: { nextId: 654, minLevel: 16 }, 654: { nextId: 655, minLevel: 36 },
+  656: { nextId: 657, minLevel: 16 }, 657: { nextId: 658, minLevel: 36 },
+  722: { nextId: 723, minLevel: 17 }, 723: { nextId: 724, minLevel: 34 },
+  725: { nextId: 726, minLevel: 17 }, 726: { nextId: 727, minLevel: 34 },
+  728: { nextId: 729, minLevel: 17 }, 729: { nextId: 730, minLevel: 34 },
+  810: { nextId: 811, minLevel: 16 }, 811: { nextId: 812, minLevel: 35 },
+  813: { nextId: 814, minLevel: 16 }, 814: { nextId: 815, minLevel: 35 },
+  816: { nextId: 817, minLevel: 16 }, 817: { nextId: 818, minLevel: 35 },
+  906: { nextId: 907, minLevel: 16 }, 907: { nextId: 908, minLevel: 36 },
+  909: { nextId: 910, minLevel: 16 }, 910: { nextId: 911, minLevel: 36 },
+  912: { nextId: 913, minLevel: 16 }, 913: { nextId: 914, minLevel: 36 }
+};
+
 const gameState = {
   player: {
     name: "한지우",
-    rankIndex: 0, // 0: Z랭크 ~ 25: A랭크, 26: 사천왕, 27: CHAMPION
-    trainerWins: 0, // 현재 랭크 내 일반 트레이너 연승 수 (0~3)
-    eliteWins: 0,   // 사천왕 연승 수 (0~4)
+    rankIndex: 0,
+    trainerWins: 0,
+    eliteWins: 0,
     gold: 1000,
     gem: 500,
     candy: 50
@@ -141,26 +229,85 @@ function recalculatePokemonStats(poke) {
 }
 
 /**
- * 🌟 경험치 획득 및 레벨업 시스템 함수
+ * 🌟 포켓몬 레벨 조건 자동 진화 엔진
+ */
+function checkAndEvolvePokemon(poke) {
+  if (!poke || !EVOLUTION_MAP[poke.id]) return null;
+
+  const evoData = EVOLUTION_MAP[poke.id];
+  if (poke.level >= evoData.minLevel) {
+    const nextTemplate = POKEMON_DB.find(p => p.id === evoData.nextId);
+    if (nextTemplate) {
+      const oldName = poke.name;
+      poke.id = nextTemplate.id;
+      poke.name = nextTemplate.name;
+      poke.img = nextTemplate.img;
+      poke.type1 = nextTemplate.type1;
+      poke.type2 = nextTemplate.type2;
+      poke.stage = nextTemplate.stage;
+      
+      // 도감 자동 추가 등록
+      gameState.pokedex.add(nextTemplate.id);
+      
+      // 새로운 진화체 종족값으로 실수치 전면 재계산
+      recalculatePokemonStats(poke);
+      poke.currentHp = poke.maxHp;
+
+      return `✨ <b>[진화!]</b> ${oldName} 이(가) <b style="color:#f1c40f;">${poke.name}</b> (으)로 진화했습니다! (도감 신규 등록 및 능력치 상승)`;
+    }
+  }
+  return null;
+}
+
+/**
+ * 🌟 경험치 획득, 영구 저장 및 진화 연동 처리
  */
 function addExpToPokemon(poke, amount) {
-  poke.exp = (poke.exp || 0) + amount;
-  let reqExp = poke.level * 50;
-  let levelUps = 0;
+  // gameState.inventory 내 원래 영구 객체 찾기
+  const orig = gameState.inventory.find(inv => inv.instanceId === poke.instanceId);
+  const target = orig || poke;
 
-  while (poke.exp >= reqExp) {
-    poke.exp -= reqExp;
-    poke.level += 1;
+  target.exp = (target.exp || 0) + amount;
+  let reqExp = target.level * 50;
+  let levelUps = 0;
+  const resultLogs = [];
+
+  while (target.exp >= reqExp) {
+    target.exp -= reqExp;
+    target.level += 1;
     levelUps++;
-    reqExp = poke.level * 50;
+    reqExp = target.level * 50;
   }
 
   if (levelUps > 0) {
-    recalculatePokemonStats(poke);
-    poke.currentHp = poke.maxHp; // 레벨업 시 체력 완충
-    return levelUps;
+    recalculatePokemonStats(target);
+    target.currentHp = target.maxHp;
+    resultLogs.push(`🎉 <b>[LEVEL UP!]</b> ${target.name} (Lv.${target.level})`);
+
+    // 레벨 달성 시 진화 수행
+    const evoLog = checkAndEvolvePokemon(target);
+    if (evoLog) resultLogs.push(evoLog);
   }
-  return 0;
+
+  // 배틀 중인 동적 렌더링 유닛 객체에도 영구 변경사항 즉시 동기화
+  if (orig && orig !== poke) {
+    poke.level = orig.level;
+    poke.exp = orig.exp;
+    poke.maxHp = orig.maxHp;
+    poke.currentHp = orig.currentHp;
+    poke.atk = orig.atk;
+    poke.def = orig.def;
+    poke.spAtk = orig.spAtk;
+    poke.spDef = orig.spDef;
+    poke.spd = orig.spd;
+    poke.id = orig.id;
+    poke.name = orig.name;
+    poke.img = orig.img;
+    poke.type1 = orig.type1;
+    poke.type2 = orig.type2;
+  }
+
+  return resultLogs;
 }
 
 /* ===================================================
@@ -333,7 +480,6 @@ function getMatchTitleInfo() {
     }
   }
 
-  // 일반 Z~A 랭크
   const tWins = gameState.player.trainerWins;
   if (tWins < 3) {
     return { title: `🏛️ ${rankStr}-랭크 트레이너 ${tWins + 1}번째 상대`, sub: `3연승 필요 (${tWins}/3 연승 중)` };
@@ -394,7 +540,6 @@ function initBattleTeams() {
     if (!pBack[i]) pBack[i] = { ...createPokemonInstance(25, 5), side: 'player', position: 'back' };
   }
 
-  // 상대 포켓몬 레벨 난이도 계산
   const baseLvl = 5 + gameState.player.rankIndex * 3;
 
   const eFront = [
@@ -505,9 +650,6 @@ function startGymBattle() {
   dialogue.innerHTML = `⚔️ ${matchInfo.title} 개시! 스피드 순서대로 라운드 행동이 진행됩니다.`;
 }
 
-/**
- * 🌟 승급 규칙 및 경험치/레벨업 반영 1라운드 완전 실행
- */
 function nextTurnGymBattle() {
   if (!currentBattleState || currentBattleState.isFinished) return;
 
@@ -556,19 +698,15 @@ function nextTurnGymBattle() {
     const teamTag = isPlayerAttacker ? `<span style="color:#38bdf8;">[아군]</span>` : `<span style="color:#ef4444;">[적군]</span>`;
     let detailMsg = `• ${teamTag} <b>${attacker.name}</b>(Spd:${attacker.spd}) ➔ <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해!`;
 
-    // 🌟 적 격파 시 경험치 부여 & 레벨업 처리
     if (target.currentHp <= 0) {
       detailMsg += ` <b style="color:#ef4444;">💥(쓰러짐!)</b>`;
       if (isPlayerAttacker) {
         const gainedExp = Math.max(20, target.level * 35);
         detailMsg += ` <span style="color:#38bdf8;">(+${gainedExp} EXP)</span>`;
 
-        // 출전 유닛 전체 경험치 분배
         playerAliveUnits.forEach(pUnit => {
-          const lvUps = addExpToPokemon(pUnit, gainedExp);
-          if (lvUps > 0) {
-            logLines.push(`🎉 <b>[LEVEL UP!]</b> ${pUnit.name} 이(가) <b style="color:#f1c40f;">Lv.${pUnit.level}</b> (으)로 레벨업했습니다! (스탯 재계산 완료)`);
-          }
+          const logs = addExpToPokemon(pUnit, gainedExp);
+          logs.forEach(l => logLines.push(l));
         });
       }
     }
@@ -578,14 +716,12 @@ function nextTurnGymBattle() {
 
   renderBattleArenaUnits();
 
-  // 승패 판정
   const isPlayerAlive = [...currentBattleState.playerFront, ...currentBattleState.playerBack].some(u => u && u.currentHp > 0);
   const isEnemyAlive = [...currentBattleState.enemyFront, ...currentBattleState.enemyBack].some(u => u && u.currentHp > 0);
 
   const curRankStr = RANKS[gameState.player.rankIndex];
 
   if (!isEnemyAlive) {
-    // 🌟 승리 시 승급 판정 처리
     if (curRankStr === 'CHAMPION') {
       logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [챔피언 방어 성공] 챔피언 자리를 지켜냈습니다! (+300 Gold, +30 Gem)</span>`);
     } else if (curRankStr === 'ELITE_FOUR') {
@@ -597,12 +733,10 @@ function nextTurnGymBattle() {
           logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [사천왕 승리] ${gameState.player.eliteWins}/4번째 사천왕 격파!</span>`);
         }
       } else {
-        // 챔피언 격파!
         gameState.player.rankIndex = RANKS.indexOf('CHAMPION');
         logLines.push(`<br><span style="color:#f1c40f; font-weight:bold; font-size:1.1rem;">🏆 [최종 챔피언 등극!] 챔피언을 쓰러뜨리고 세계 챔피언이 되었습니다!</span>`);
       }
     } else {
-      // 일반 Z~A 랭크
       if (gameState.player.trainerWins < 3) {
         gameState.player.trainerWins += 1;
         if (gameState.player.trainerWins === 3) {
@@ -611,7 +745,6 @@ function nextTurnGymBattle() {
           logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [트레이너 승리] ${gameState.player.trainerWins}/3연승 달성!</span>`);
         }
       } else {
-        // 관장 격파 -> 승급!
         gameState.player.rankIndex += 1;
         gameState.player.trainerWins = 0;
         const newRankStr = getPlayerRankName();
@@ -627,13 +760,12 @@ function nextTurnGymBattle() {
     document.getElementById('startBattleBtn').style.display = 'block';
 
   } else if (!isPlayerAlive) {
-    // 🌟 패배 시 초기화 판정 처리
     if (curRankStr === 'ELITE_FOUR') {
-      gameState.player.eliteWins = 0; // 사천왕 1번부터 리셋
+      gameState.player.eliteWins = 0;
       logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [사천왕 패배] 사천왕 도전은 1번 사천왕부터 다시 도전해야 합니다!</span>`);
     } else if (curRankStr !== 'CHAMPION') {
       if (gameState.player.trainerWins < 3) {
-        gameState.player.trainerWins = 0; // 3연승 패배 시 첫번째 트레이너부터 리셋
+        gameState.player.trainerWins = 0;
         logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [트레이너 패배] 3연승 실패! 첫 번째 트레이너부터 다시 도전해야 합니다.</span>`);
       } else {
         logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [관장전 패배] 관장 승급전 실패... 다시 관장전부터 도전하세요.</span>`);
@@ -780,9 +912,15 @@ function levelUpPokemon(instanceId) {
     gameState.player.candy -= 5;
     poke.level += 1;
     recalculatePokemonStats(poke);
+    poke.currentHp = poke.maxHp;
+    const evoLog = checkAndEvolvePokemon(poke);
     updateTopBarUI();
     renderDaycareUI();
-    alert(`🎉 ${poke.name} 레벨이 Lv.${poke.level}(으)로 상승했습니다!`);
+    if (evoLog) {
+      alert(`🎉 레벨업 성공!\n✨ ${poke.name}(으)로 진화했습니다!`);
+    } else {
+      alert(`🎉 ${poke.name} 레벨이 Lv.${poke.level}(으)로 상승했습니다!`);
+    }
   }
 }
 
