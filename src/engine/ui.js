@@ -1,18 +1,14 @@
 /**
- * ui.js - DOM 렌더링, 이벤트 바인딩 및 화면 인터페이스 제어 (수정본)
+ * ui.js - DOM 렌더링, 이벤트 바인딩 및 화면 인터페이스 제어 (엔트리 배치/해제 수정본)
  */
 
 /**
  * 네비게이션 탭 전환 처리 함수
- * @param {string} tabId - 이동할 탭 ID
- * @param {Event} evt - 클릭 이벤트 객체
  */
 function switchTab(tabId, evt) {
-  // 모든 탭 버튼 및 패널 비활성화
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.facility-panel').forEach(panel => panel.classList.remove('active'));
 
-  // 클릭된 버튼 요소 정확히 탐색 및 활성화
   if (evt) {
     const targetBtn = evt.currentTarget || (evt.target ? evt.target.closest('.nav-btn') : null);
     if (targetBtn) {
@@ -20,7 +16,6 @@ function switchTab(tabId, evt) {
     }
   }
 
-  // 대상 패널 활성화
   const targetPanel = document.getElementById('tab-' + tabId);
   if (targetPanel) {
     targetPanel.classList.add('active');
@@ -52,7 +47,7 @@ function renderUI() {
 }
 
 /**
- * 엔트리 파티 슬롯 렌더링
+ * 엔트리 파티 (전방/후방) 슬롯 렌더링 (❌ 해제 버튼 & 상세보기 바인딩)
  */
 function renderSquadSlots() {
   ['front', 'back'].forEach(line => {
@@ -63,20 +58,76 @@ function renderSquadSlots() {
     gameState.squad[line].forEach((poke, index) => {
       const slotEl = document.createElement('div');
       slotEl.className = `slot ${poke ? 'occupied' : ''}`;
-      slotEl.onclick = () => removeSlot(line, index);
-      slotEl.onclick = () => openPokemonDetail(poke.uid);
 
       if (poke) {
         slotEl.innerHTML = `
+          <div style="position:absolute; top:4px; right:6px; color:#e94560; font-weight:bold; font-size:0.85rem; cursor:pointer;" onclick="event.stopPropagation(); removeSlot('${line}', ${index});" title="엔트리 해제">❌</div>
           <img src="${poke.img}" class="poke-img" alt="${poke.name}" />
           <div class="slot-poke-name">${poke.name} (Lv.${poke.level})</div>
           <span class="poke-moves-tag">⚔️ ${poke.moves.join(', ')}</span>
         `;
+        slotEl.onclick = () => openPokemonDetail(poke.uid);
       } else {
         slotEl.innerHTML = `<span style="color:#666;">[${line === 'front' ? '전방' : '후방'} ${index + 1}]</span>`;
       }
       slotsContainer.appendChild(slotEl);
     });
+  });
+}
+
+/**
+ * 포켓몬 토글 배치/해제 처리 함수
+ */
+function toggleEquipPokemon(uid) {
+  const poke = gameState.inventory.find(p => p.uid === uid);
+  if (!poke) return;
+
+  let equippedLine = null;
+  let equippedIndex = -1;
+
+  ['front', 'back'].forEach(line => {
+    const idx = gameState.squad[line].findIndex(p => p && p.uid === uid);
+    if (idx !== -1) {
+      equippedLine = line;
+      equippedIndex = idx;
+    }
+  });
+
+  if (equippedLine !== null) {
+    removeSlot(equippedLine, equippedIndex);
+  } else {
+    equipPokemon(poke);
+  }
+}
+
+/**
+ * 보유 포켓몬 인벤토리 목록 렌더링 (배치/해제 버튼 추가)
+ */
+function renderInventory() {
+  const grid = document.getElementById('inventoryGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  gameState.inventory.forEach(poke => {
+    const isEquipped = [...gameState.squad.front, ...gameState.squad.back]
+      .some(p => p && p.uid === poke.uid);
+
+    const card = document.createElement('div');
+    card.className = 'poke-card';
+    if (isEquipped) card.style.borderColor = 'var(--accent-yellow)';
+
+    card.innerHTML = `
+      <span class="stage-badge">${poke.stage === 1 ? '🌱 기본체' : (poke.stage === 2 ? '⚡ 2단계' : '🔥 최종체')}</span>
+      <img src="${poke.img}" class="poke-img" alt="${poke.name}" />
+      <div style="font-weight:bold; font-size:0.85rem;">${poke.name} ${isEquipped ? '⚔️' : ''}</div>
+      <div class="poke-stats">Lv.${poke.level} | HP ${poke.currentHp}/${poke.maxHp}</div>
+      <span class="poke-moves-tag">기술: ${poke.moves.join(', ')}</span>
+      <button style="margin-top:6px; padding:4px 6px; background:${isEquipped ? '#e94560' : 'var(--accent-green)'}; color:white; border:none; border-radius:4px; font-weight:bold; font-size:0.75rem; cursor:pointer; width:100%;" onclick="event.stopPropagation(); toggleEquipPokemon('${poke.uid}')">
+        ${isEquipped ? '➖ 엔트리 해제' : '➕ 엔트리 배치'}
+      </button>
+    `;
+    card.onclick = () => openPokemonDetail(poke.uid);
+    grid.appendChild(card);
   });
 }
 
@@ -119,35 +170,6 @@ function renderBuffs() {
   if (!hasBuff) {
     buffListEl.innerHTML = '<span style="color:#aaa;">현재 발동 중인 버프 없음</span>';
   }
-}
-
-/**
- * 인벤토리 목록 렌더링
- */
-function renderInventory() {
-  const grid = document.getElementById('inventoryGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-
-  gameState.inventory.forEach(poke => {
-    const isEquipped = [...gameState.squad.front, ...gameState.squad.back]
-      .some(p => p && p.uid === poke.uid);
-
-    const card = document.createElement('div');
-    card.className = 'poke-card';
-    if (isEquipped) card.style.opacity = '0.5';
-
-    card.onclick = () => equipPokemon(poke);
-    card.onclick = () => equipPokemonDetail(poke.uid);
-    card.innerHTML = `
-      <span class="stage-badge">${poke.stage === 1 ? '🌱 기본체' : (poke.stage === 2 ? '⚡ 2단계' : '🔥 최종체')}</span>
-      <img src="${poke.img}" class="poke-img" alt="${poke.name}" />
-      <div style="font-weight:bold; font-size:0.85rem;">${poke.name}</div>
-      <div class="poke-stats">Lv.${poke.level} | HP ${poke.currentHp}/${poke.maxHp}</div>
-      <span class="poke-moves-tag">기술: ${poke.moves.join(', ')}</span>
-    `;
-    grid.appendChild(card);
-  });
 }
 
 /**
@@ -197,9 +219,10 @@ function renderDaycare() {
       <img src="${poke.img}" class="poke-img" alt="${poke.name}" />
       <div style="font-weight:bold; font-size:0.85rem;">${poke.name} (Lv.${poke.level})</div>
       <span class="poke-moves-tag">기술: ${poke.moves.join(', ')}</span>
-      <button style="margin-top:6px; padding:4px 8px; background:var(--accent-yellow); border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%;" onclick="levelUpPokemon('${poke.uid}')">🍬 레벨업 (10 Candy)</button>
-      ${canEvolve ? `<button class="evo-btn" onclick="evolvePokemon('${poke.uid}')">✨ 진화 가능</button>` : ''}
+      <button style="margin-top:6px; padding:4px 8px; background:var(--accent-yellow); border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%;" onclick="event.stopPropagation(); levelUpPokemon('${poke.uid}')">🍬 레벨업 (10 Candy)</button>
+      ${canEvolve ? `<button class="evo-btn" onclick="event.stopPropagation(); evolvePokemon('${poke.uid}')">✨ 진화 가능</button>` : ''}
     `;
+    card.onclick = () => openPokemonDetail(poke.uid);
     grid.appendChild(card);
   });
 }
@@ -254,20 +277,15 @@ function renderPokedex() {
 }
 
 /**
- * 전방 3마리 / 후방 3마리 2열 진형 배틀 아레나 UI 렌더링
- * @param {Array} playerTeam - 플레이어 파티
- * @param {Array} enemyTeam - 관장 포켓몬 파티
+ * 세븐나이츠 2열 아레나 UI 렌더링
  */
 function renderBattleArena(playerTeam, enemyTeam) {
   const pSide = document.getElementById('playerBattleSide');
   const eSide = document.getElementById('enemyBattleSide');
   if (!pSide || !eSide) return;
 
-  // 플레이어 파티 전방(front) / 후방(back) 라인 추출
   const playerBack = gameState.squad.back.filter(p => p !== null);
   const playerFront = gameState.squad.front.filter(p => p !== null);
-
-  // 적 파티 전방 / 후방 추출 (최대 6마리 대응)
   const enemyFront = enemyTeam.slice(0, 3);
   const enemyBack = enemyTeam.slice(3, 6);
 
@@ -295,7 +313,6 @@ function renderBattleArena(playerTeam, enemyTeam) {
     `;
   };
 
-  // 아군 (좌측: 후방 라인 -> 전방 라인)
   pSide.innerHTML = `
     <div class="sk-line back-line">
       ${playerBack.map(p => renderUnit(p, false)).join('')}
@@ -305,7 +322,6 @@ function renderBattleArena(playerTeam, enemyTeam) {
     </div>
   `;
 
-  // 적군 (우측: 전방 라인 -> 후방 라인)
   eSide.innerHTML = `
     <div class="sk-line front-line">
       ${enemyFront.map(e => renderUnit(e, true)).join('')}
@@ -316,15 +332,8 @@ function renderBattleArena(playerTeam, enemyTeam) {
   `;
 }
 
-// DOM 생성이 완료되는 즉시 게임 데이터 및 UI 초기화
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof initGame === 'function') {
-    initGame();
-  }
-});
-
 /**
- * 개체값(IV) 텍스트 판정 변환 함수 (포켓몬 본가 심사위원 멘트)
+ * 개체값(IV) 텍스트 판정 변환 함수
  */
 function getIvGradeText(iv) {
   if (iv === 31) return { text: "최고!", color: "#2ecc71" };
@@ -349,32 +358,34 @@ function openPokemonDetail(uid) {
   const statsTable = document.getElementById('modalStatsTable');
   const summaryEl = document.getElementById('modalOverallJudge');
 
-  imgEl.src = poke.img;
-  nameEl.innerText = `${poke.name} (Lv.${poke.level})`;
-  typesEl.innerHTML = `
-    <span class="type-badge type-${poke.type1}">${poke.type1}</span>
-    ${poke.type2 ? `<span class="type-badge type-${poke.type2}">${poke.type2}</span>` : ''}
-  `;
-
-  // 기술 4종 카드 출력
-  movesGrid.innerHTML = poke.moves.map(mName => {
-    const move = (typeof MOVES_DB !== 'undefined' && MOVES_DB[mName]) || { name: mName, type: poke.type1, category: "물리", power: 40, accuracy: 100 };
-    return `
-      <div class="move-card">
-        <div class="move-card-header">
-          <span class="move-card-name">${move.name}</span>
-          <span class="type-badge type-${move.type}">${move.type}</span>
-        </div>
-        <div class="move-card-detail">
-          <span>${move.category}</span>
-          <span>위력: ${move.power || '-'} | 명중: ${move.accuracy || '-'}</span>
-        </div>
-      </div>
+  if (imgEl) imgEl.src = poke.img;
+  if (nameEl) nameEl.innerText = `${poke.name} (Lv.${poke.level})`;
+  if (typesEl) {
+    typesEl.innerHTML = `
+      <span class="type-badge type-${poke.type1}">${poke.type1}</span>
+      ${poke.type2 ? `<span class="type-badge type-${poke.type2}">${poke.type2}</span>` : ''}
     `;
-  }).join('');
+  }
 
-  // 6개 세부 스탯 및 개체값 판정표 출력
-  const ivs = poke.ivs || { hp: 15, atk: 15, def: 15, spAtk: 15, spDef: 15, spd: 15 };
+  if (movesGrid) {
+    movesGrid.innerHTML = poke.moves.map(mName => {
+      const move = (typeof MOVES_DB !== 'undefined' && MOVES_DB[mName]) || { name: mName, type: poke.type1, category: "물리", power: 40, accuracy: 100 };
+      return `
+        <div class="move-card">
+          <div class="move-card-header">
+            <span class="move-card-name">${move.name}</span>
+            <span class="type-badge type-${move.type}">${move.type}</span>
+          </div>
+          <div class="move-card-detail">
+            <span>${move.category}</span>
+            <span>위력: ${move.power || '-'} | 명중: ${move.accuracy || '-'}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const ivs = poke.ivs || { hp: poke.iv || 15, atk: poke.iv || 15, def: poke.iv || 15, spAtk: poke.iv || 15, spDef: poke.iv || 15, spd: poke.iv || 15 };
   const statList = [
     { name: "HP", val: poke.maxHp, iv: ivs.hp },
     { name: "공격", val: poke.atk, iv: ivs.atk },
@@ -384,29 +395,31 @@ function openPokemonDetail(uid) {
     { name: "특수공격", val: poke.spAtk || poke.atk, iv: ivs.spAtk }
   ];
 
-  statsTable.innerHTML = statList.map(s => {
-    const grade = getIvGradeText(s.iv);
-    return `
-      <div class="stat-row-item">
-        <span class="stat-row-name">${s.name}:</span>
-        <span class="stat-row-val">${s.val}</span>
-        <span class="stat-row-iv" style="color:${grade.color};">[${grade.text}]</span>
-      </div>
-    `;
-  }).join('');
+  if (statsTable) {
+    statsTable.innerHTML = statList.map(s => {
+      const grade = getIvGradeText(s.iv);
+      return `
+        <div class="stat-row-item">
+          <span class="stat-row-name">${s.name}:</span>
+          <span class="stat-row-val">${s.val}</span>
+          <span class="stat-row-iv" style="color:${grade.color};">[${grade.text}]</span>
+        </div>
+      `;
+    }).join('');
+  }
 
-  // 개체값 총점 평가
   const ivSum = Object.values(ivs).reduce((a, b) => a + b, 0);
-  if (ivSum >= 151) summaryEl.innerText = "🌟 훌륭한 능력!";
-  else if (ivSum >= 121) summaryEl.innerText = "✨ 상당한 능력!";
-  else if (ivSum >= 91) summaryEl.innerText = "👍 평균 이상의 능력!";
-  else summaryEl.innerText = "🌱 성장 가능성이 있는 능력!";
+  if (summaryEl) {
+    if (ivSum >= 151) summaryEl.innerText = "🌟 훌륭한 능력!";
+    else if (ivSum >= 121) summaryEl.innerText = "✨ 상당한 능력!";
+    else if (ivSum >= 91) summaryEl.innerText = "👍 평균 이상의 능력!";
+    else summaryEl.innerText = "🌱 성장 가능성이 있는 능력!";
+  }
 
-  // 캔버스 육각형 레이더 그래프 그리기
   const canvas = document.getElementById('statHexCanvas');
-  drawHexagonChart(canvas, statList);
+  if (canvas) drawHexagonChart(canvas, statList);
 
-  modal.classList.add('active');
+  if (modal) modal.classList.add('active');
 }
 
 /**
@@ -419,7 +432,7 @@ function closePokemonDetail(evt) {
 }
 
 /**
- * HTML5 Canvas 6축 육각형 레이더 그래프 렌더링 함수
+ * 6축 육각형 레이더 그래프 렌더링 함수
  */
 function drawHexagonChart(canvas, statList) {
   const ctx = canvas.getContext('2d');
@@ -431,17 +444,15 @@ function drawHexagonChart(canvas, statList) {
 
   ctx.clearRect(0, 0, width, height);
 
-  // 6축 각도 (12시 방향 HP부터 시계 방향 순서)
   const angles = [
-    -Math.PI / 2,         // HP (상단)
-    -Math.PI / 6,         // 공격 (우상단)
-    Math.PI / 6,          // 방어 (우하단)
-    Math.PI / 2,          // 스피드 (하단)
-    (5 * Math.PI) / 6,    // 특수방어 (좌하단)
-    (-5 * Math.PI) / 6    // 특수공격 (좌상단)
+    -Math.PI / 2,
+    -Math.PI / 6,
+    Math.PI / 6,
+    Math.PI / 2,
+    (5 * Math.PI) / 6,
+    (-5 * Math.PI) / 6
   ];
 
-  // 1. 그리드 베이스 육각형 (3단계)
   [0.33, 0.66, 1.0].forEach(scale => {
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
@@ -458,7 +469,6 @@ function drawHexagonChart(canvas, statList) {
     ctx.stroke();
   });
 
-  // 2. 중심 축선 그리기
   for (let i = 0; i < 6; i++) {
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
@@ -467,7 +477,6 @@ function drawHexagonChart(canvas, statList) {
     ctx.stroke();
   }
 
-  // 3. 실측 IV 데이터 파란색 다각형 폴리곤 그리기 (개체값 0~31 스케일링)
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
     const ivRatio = Math.max(0.15, statList[i].iv / 31);
@@ -483,7 +492,6 @@ function drawHexagonChart(canvas, statList) {
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // 4. 라벨 및 텍스트 표시
   ctx.font = 'bold 11px Pretendard, sans-serif';
   ctx.textAlign = 'center';
 
@@ -498,3 +506,10 @@ function drawHexagonChart(canvas, statList) {
     ctx.fillText(statList[i].val, x, y + 7);
   }
 }
+
+// DOM 준비 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof initGame === 'function') {
+    initGame();
+  }
+});
