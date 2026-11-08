@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>포켓몬 마스터 키우기</title>
+  <title>포켓몬 마스터 키우기 3D</title>
   <link rel="stylesheet" href="style.css">
+  <!-- Three.js 3D 라이브러리 CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-  <header>
+  <!-- 게임 상단 자산 표시 HUD (CoC 스타일) -->
+  <header class="coc-hud">
     <div class="trainer-info">
-      <h2>포켓몬 마스터</h2>
       <span class="rank-badge" id="playerRank">Z-랭크 트레이너</span>
     </div>
     <div class="resources">
@@ -21,19 +23,22 @@
   </header>
 
   <main>
-    <nav>
-      <button class="nav-btn active" onclick="switchTab('party', event)">🎒 파티/엔트리</button>
-      <button class="nav-btn" onclick="switchTab('gym', event)">⚔️ 체육관(랭크전)</button>
-      <button class="nav-btn" onclick="switchTab('mart', event)">🛒 프렌들리숍</button>
-      <button class="nav-btn" onclick="switchTab('daycare', event)">🏕️ 키우미집</button>
-      <button class="nav-btn" onclick="switchTab('lab', event)">🔬 연구소(채용)</button>
-      <button class="nav-btn" onclick="switchTab('dex', event)">📖 전국 도감</button>
-    </nav>
+    <!-- 메인 3D 클래시 오브 클랜 마을 필드 -->
+    <div id="tab-village" class="facility-panel active">
+      <div id="village3dContainer" class="village-3d-viewport"></div>
+      <div class="village-controls-hint">
+        💡 <b>마우스 드래그</b>: 건물 위치 이동 | <b>클릭</b>: 시설 입장
+      </div>
+    </div>
 
-    <!-- 탭별 콘텐츠 영역 -->
-    <div id="tab-party" class="facility-panel active">
+    <!-- 시설 팝업/패널 (파티, 체육관, 상점 등) -->
+    <div id="tab-party" class="facility-panel">
+      <div class="facility-top-bar">
+        <h3>🎒 파티 & 엔트리 관리</h3>
+        <button class="back-to-village-btn" onclick="switchTab('village')">🏡 마을로 돌아가기</button>
+      </div>
       <div class="buff-panel">
-        <span class="buff-title">파티 시너지 & 도감 부수 효과:</span>
+        <span class="buff-title">파티 시너지 & 도감 효과:</span>
         <div class="buff-list" id="activeBuffList"></div>
       </div>
       <div class="squad-container">
@@ -50,53 +55,52 @@
       <div class="poke-grid" id="inventoryGrid"></div>
     </div>
 
-    <!-- 2. 체육관 (세븐나이츠 배틀 탭) -->
     <div id="tab-gym" class="facility-panel">
+      <div class="facility-top-bar">
+        <h3>⚔️ 체육관 (랭크 배틀)</h3>
+        <button class="back-to-village-btn" onclick="switchTab('village')">🏡 마을로 돌아가기</button>
+      </div>
       <div class="battle-field">
-        <!-- 1) 메인 배틀 아레나 (포켓몬 전장) -->
         <div class="arena-display">
           <div class="sk-top-hud">
-            <div class="sk-stage-name" id="stageTitle">🏛️ Z-랭크 1단계 관장 도전전</div>
+            <div class="sk-stage-name" id="stageTitle">🏛️ Z-랭크 관장 도전전</div>
             <div class="sk-rank-info" id="rankProgress">승급 포인트: 0 / 100</div>
           </div>
-
           <div class="sk-battle-zone">
             <div class="sk-team-side player-side" id="playerBattleSide"></div>
             <div class="sk-vs-badge">VS</div>
             <div class="sk-team-side enemy-side" id="enemyBattleSide"></div>
           </div>
         </div>
-
-        <!-- 2) 전장 외부 하단 배틀 안내 대사 상자 -->
-        <div class="sk-dialogue-box" id="battleDialogue">
-          ⚔️ 배틀 준비 완료. '승급 배틀 시작' 버튼을 눌러 전투를 진행하세요.
-        </div>
-
-        <!-- 3) 하단 조작 버튼 -->
+        <div class="sk-dialogue-box" id="battleDialogue">배틀 준비 완료.</div>
         <div class="sk-bottom-control">
           <button class="action-btn sk-start-btn" id="startBattleBtn" onclick="startBattle()">⚔️ 승급 배틀 시작</button>
-          <button class="action-btn sk-next-btn" id="nextTurnBtn" onclick="nextTurn()" style="display:none;">다음 턴 (1턴) ➡️</button>
+          <button class="action-btn sk-next-btn" id="nextTurnBtn" onclick="nextTurn()" style="display:none;">다음 턴 ➡️</button>
         </div>
       </div>
     </div>
 
     <div id="tab-mart" class="facility-panel">
-      <h3>🛒 포켓몬 프렌들리숍 (상점)</h3>
+      <div class="facility-top-bar">
+        <h3>🛒 포켓몬 프렌들리숍</h3>
+        <button class="back-to-village-btn" onclick="switchTab('village')">🏡 마을로 돌아가기</button>
+      </div>
       <div class="shop-grid" id="shopGrid"></div>
     </div>
 
-    <div id="tab-center" class="facility-panel">
-      <h3>🏥 포켓몬 센터</h3>
-      <button class="action-btn" style="background:var(--accent-green);" onclick="healAllPokemon()">💖 전체 포켓몬 완치</button>
-    </div>
-
     <div id="tab-daycare" class="facility-panel">
-      <h3>🏕️ 키우미집 & 훈련소</h3>
+      <div class="facility-top-bar">
+        <h3>🏕️ 키우미집 & 훈련소</h3>
+        <button class="back-to-village-btn" onclick="switchTab('village')">🏡 마을로 돌아가기</button>
+      </div>
       <div class="poke-grid" id="daycareGrid"></div>
     </div>
 
     <div id="tab-lab" class="facility-panel">
-      <h3>🔬 오박사 연구소</h3>
+      <div class="facility-top-bar">
+        <h3>🔬 오박사 연구소</h3>
+        <button class="back-to-village-btn" onclick="switchTab('village')">🏡 마을로 돌아가기</button>
+      </div>
       <div style="display:flex; gap:10px; margin-top:20px;">
         <button class="action-btn" style="background:var(--accent-blue);" onclick="summonPokemon(1)">🎲 1회 채용 (10 Gem)</button>
         <button class="action-btn" style="background:var(--accent-yellow); color:black;" onclick="summonPokemon(10)">🎲 10회 연속 채용 (100 Gem)</button>
@@ -104,14 +108,17 @@
     </div>
 
     <div id="tab-dex" class="facility-panel">
-      <h3>📖 전국 포켓몬 도감</h3>
+      <div class="facility-top-bar">
+        <h3>📖 전국 포켓몬 도감</h3>
+        <button class="back-to-village-btn" onclick="switchTab('village')">🏡 마을로 돌아가기</button>
+      </div>
       <p id="dexProgressText">도감 수집 진행도: 0 / 123</p>
       <div class="region-grid" id="regionGrid"></div>
       <div class="poke-grid" id="pokedexGrid"></div>
     </div>
   </main>
 
-  <!-- 포켓몬 상세 정보 모달 (육각형 스탯 그래프 & 기술 4종) -->
+  <!-- 모달 및 스크립트 -->
   <div id="pokeDetailModal" class="modal-overlay" onclick="closePokemonDetail(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <div class="modal-header">
@@ -124,9 +131,7 @@
         </div>
         <button class="modal-close-btn" onclick="closePokemonDetail()">&times;</button>
       </div>
-
       <div class="modal-body">
-        <!-- 좌측: 육각형 스탯 레이더 그래프 & IV 평가 -->
         <div class="modal-stat-section">
           <h3>📊 능력치 & 개체값(IV)</h3>
           <div class="canvas-wrapper">
@@ -136,12 +141,9 @@
             총합 평가: <span id="modalOverallJudge" style="color:var(--accent-yellow);">훌륭한 능력!</span>
           </div>
         </div>
-
-        <!-- 우측: 6개 세부 스탯 수치표 & 기술 4종 -->
         <div class="modal-info-section">
-          <h3>⚔️ 현재 장착 기술 (4개)</h3>
+          <h3>⚔️ 현재 장착 기술</h3>
           <div class="modal-moves-grid" id="modalMovesGrid"></div>
-
           <h3 style="margin-top: 15px;">📋 세부 능력치</h3>
           <div class="modal-stats-table" id="modalStatsTable"></div>
         </div>
@@ -149,12 +151,13 @@
     </div>
   </div>
 
-  <!-- 데이터 및 스크립트 모듈 로드 -->
   <script src="src/data/moves.js"></script>
   <script src="src/data/pokemon.js"></script>
   <script src="src/data/shop.js"></script>
   <script src="src/engine/state.js"></script>
   <script src="src/engine/battle.js"></script>
   <script src="src/engine/ui.js"></script>
+  <!-- 3D 마을 관리 모듈 -->
+  <script src="src/engine/village3d.js"></script>
 </body>
 </html>

@@ -951,3 +951,62 @@ nav {
   color: #ffffff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
 }
+
+/* 상단 HUD 헤더 */
+.coc-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.95);
+  padding: 10px 20px;
+  border-bottom: 2px solid #f39c12;
+}
+
+/* 3D 전장 뷰포트 영역 */
+.village-3d-viewport {
+  width: 100%;
+  height: calc(100vh - 120px);
+  min-height: 520px;
+  background: #111;
+  border: 3px solid #f39c12;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+.village-controls-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid #f39c12;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.facility-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.back-to-village-btn {
+  background: linear-gradient(45deg, #27ae60, #2ecc71);
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 3px 8px rgba(39, 174, 96, 0.4);
+}

@@ -6,16 +6,17 @@
  * 네비게이션 탭 전환 처리 함수
  */
 function switchTab(tabId, evt) {
+  // 네비게이션 버튼 액티브 해제
   document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.facility-panel').forEach(panel => panel.classList.remove('active'));
 
-  if (evt) {
-    const targetBtn = evt.currentTarget || (evt.target ? evt.target.closest('.nav-btn') : null);
-    if (targetBtn) {
-      targetBtn.classList.add('active');
-    }
+  // 상단 네비게이션 버튼 연동 보정
+  const matchedNavBtn = document.querySelector(`.nav-btn[onclick*="'${tabId}'"]`);
+  if (matchedNavBtn) {
+    matchedNavBtn.classList.add('active');
   }
 
+  // 대상 시설 패널 활성화
   const targetPanel = document.getElementById('tab-' + tabId);
   if (targetPanel) {
     targetPanel.classList.add('active');
