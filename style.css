@@ -1,1141 +1,170 @@
-/**
- * style.css - 포켓몬 마스터 키우기 전용 스타일시트
- */
-
 :root {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --card-bg: #0f3460;
-  --accent-red: #e94560;
-  --accent-yellow: #f39c12;
+  --bg-dark: #0f172a;
+  --panel-bg: rgba(30, 41, 59, 0.9);
+  --accent-yellow: #f1c40f;
+  --accent-blue: #38bdf8;
+  --accent-red: #ef4444;
   --accent-green: #2ecc71;
-  --accent-blue: #3498db;
-  --accent-purple: #9b59b6;
-  --text-main: #ffffff;
-  --text-sub: #b2bec3;
+  --text-light: #f8fafc;
+  --border-color: rgba(255, 255, 255, 0.15);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
 }
 
 body {
-  background-color: var(--bg-primary);
-  color: var(--text-main);
-  display: flex;
-  flex-direction: column;
+  font-family: 'Pretendard', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
   min-height: 100vh;
 }
 
-/* ==========================================
- * 헤더 및 재화 바 (Header & Resources)
- * ========================================== */
-header {
-  background-color: var(--bg-secondary);
-  padding: 12px 20px;
+#app {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 15px;
+}
+
+.top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid var(--accent-red);
-  flex-wrap: wrap;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--border-color);
+  padding: 12px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
-.trainer-info {
-  display: flex;
-  gap: 15px;
-  align-items: center;
+.trainer-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--accent-yellow);
 }
 
 .rank-badge {
-  background: linear-gradient(45deg, #f39c12, #e67e22);
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-weight: bold;
-  font-size: 0.85rem;
+  background: var(--accent-blue);
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
-.resources {
+.resource-bar {
   display: flex;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  flex-wrap: wrap;
-}
-
-.res-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-
-/* ==========================================
- * 메인 레이아웃 및 네비게이션 (Nav & Layout)
- * ========================================== */
-main {
-  flex: 1;
-  padding: 15px;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
   gap: 15px;
 }
 
-nav {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 6px;
-}
-
-.nav-btn {
-  background: var(--bg-secondary);
-  border: 1px solid var(--card-bg);
-  color: var(--text-sub);
-  padding: 10px 4px;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
+.resource-item {
   font-weight: bold;
-  font-size: 0.82rem;
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px 12px;
+  border-radius: 15px;
+  border: 1px solid var(--border-color);
 }
 
-.nav-btn:hover,
-.nav-btn.active {
-  background: var(--accent-red);
+.nav-home-btn, .back-btn {
+  background: linear-gradient(135deg, #e67e22, #d35400);
   color: white;
-  border-color: var(--accent-red);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .facility-panel {
   display: none;
-  background: var(--bg-secondary);
-  border-radius: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
   padding: 20px;
-  flex: 1;
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .facility-panel.active {
   display: block;
 }
 
-/* ==========================================
- * 파티 / 엔트리 스쿼드 (Squad & Party)
- * ========================================== */
-.squad-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
 }
 
-.squad-section {
-  background: var(--card-bg);
-  border-radius: 10px;
-  padding: 15px;
-}
-
-.squad-section h3 {
-  font-size: 0.95rem;
-  margin-bottom: 10px;
-  color: var(--accent-yellow);
-  display: flex;
-  justify-content: space-between;
-}
-
-.squad-slots {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.slot {
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px dashed rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  min-height: 110px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  padding: 8px;
-  transition: border-color 0.2s;
-}
-
-.slot.occupied {
-  border: 2px solid var(--accent-blue);
-  background: rgba(52, 152, 219, 0.15);
-}
-
-.slot-poke-name {
-  font-weight: bold;
-  font-size: 0.85rem;
-  margin-top: 4px;
-  text-align: center;
-}
-
-/* ==========================================
- * 버프 및 패시브 패널 (Buff Panel)
- * ========================================== */
-.buff-panel {
-  background: rgba(46, 204, 113, 0.1);
-  border: 1px solid var(--accent-green);
-  border-radius: 8px;
-  padding: 10px 15px;
-  margin-bottom: 15px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.buff-title {
-  font-weight: bold;
-  color: var(--accent-green);
-  font-size: 0.85rem;
-}
-
-.buff-list {
-  display: flex;
-  gap: 8px;
-  font-size: 0.8rem;
-  flex-wrap: wrap;
-}
-
-.buff-tag {
-  background: var(--accent-green);
-  color: black;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.passive-tag {
-  background: var(--accent-yellow);
-  color: black;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-/* ==========================================
- * 포켓몬 그리드 & 카드 (Pokemon Cards)
- * ========================================== */
-.poke-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
-  max-height: 420px;
-  overflow-y: auto;
-  padding-right: 5px;
-}
-
-.poke-card {
-  background: var(--card-bg);
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: transform 0.15s, border-color 0.15s;
-}
-
-.poke-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent-yellow);
-}
-
-.poke-img {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  margin: 0 auto 5px auto;
-  display: block;
-}
-
-.poke-stats {
-  font-size: 0.75rem;
-  color: var(--text-sub);
-  margin-top: 3px;
-}
-
-.poke-moves-tag {
-  font-size: 0.7rem;
-  color: #f1c40f;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 2px 4px;
-  border-radius: 4px;
-  margin-top: 4px;
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.stage-badge {
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.15);
-  margin-bottom: 4px;
-  display: inline-block;
-}
-
-/* ==========================================
- * 상점 카드 레이아웃 (Shop Section)
- * ========================================== */
-.shop-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 15px;
-  margin-top: 15px;
-}
-
-.shop-card {
-  background: var(--card-bg);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 15px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.shop-icon {
-  font-size: 2.2rem;
-}
-
-.shop-name {
-  font-weight: bold;
-  font-size: 1rem;
-  color: var(--accent-yellow);
-}
-
-.shop-desc {
-  font-size: 0
-}
-
-/* ==========================================
- * 세븐나이츠 2열 진형 (전방 3 / 후방 3) 배틀 스타일
- * ========================================== */
-/* ==========================================
- * 세븐나이츠 배틀 필드 & 하단 대사 상자
- * ========================================== */
-.battle-field {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 아레나 전장 박스 */
-.arena-display {
-  position: relative;
-  height: 340px;
-  background: linear-gradient(180deg, #121826 0%, #1a2639 35%, #2a4734 36%, #1b3322 100%);
-  border: 3px solid #f39c12;
-  border-radius: 14px;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8), 0 8px 20px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 12px 20px;
-  overflow: hidden;
-}
-
-/* 전장 하단 외부 배틀 안내창 */
-.sk-dialogue-box {
-  background: rgba(15, 23, 42, 0.95);
-  border: 2px solid #f39c12;
-  border-radius: 10px;
-  padding: 12px 18px;
-  min-height: 52px;
-  font-size: 0.92rem;
-  font-weight: bold;
-  color: #ffffff;
-  line-height: 1.45;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-}
-
-/* 다음 턴 버튼 */
-.sk-next-btn {
-  background: linear-gradient(45deg, #f39c12, #e67e22);
-  color: #000000;
-  font-size: 1.05rem;
-  font-weight: 900;
-  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-}
-
-.sk-next-btn:disabled {
-  background: #555555;
-  color: #888888;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* 상단 HUD 스테이지 정보 */
-.sk-top-hud {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 2;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(243, 156, 18, 0.4);
-}
-
-.sk-stage-name {
-  font-size: 0.9rem;
-  font-weight: bold;
-  color: #f39c12;
-}
-
-.sk-rank-info {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #ecf0f1;
-}
-
-/* 전투 구도 (전방/후방 2열 레이아웃) */
-.sk-battle-zone {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex: 1;
-  padding: 10px 20px;
-  z-index: 2;
-}
-
-/* 팀 서브 라인 (전방 3마리 / 후방 3마리 묶음) */
-.sk-team-side {
-  display: flex;
-  gap: 25px;
-  align-items: center;
-}
-
-.sk-line {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-}
-
-.sk-vs-badge {
-  font-size: 1.8rem;
-  font-weight: 900;
-  font-style: italic;
-  color: #f39c12;
-  text-shadow: 0 0 10px rgba(243, 156, 18, 0.8), 0 0 20px rgba(233, 69, 96, 0.8);
-}
-
-/* 2열 세로 배치 유닛 크기 및 HP바 */
-.sk-unit {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  transition: transform 0.2s;
-}
-
-.sk-unit.fainted {
-  opacity: 0.35;
-  filter: grayscale(100%);
-}
-
-.sk-hp-badge {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid #f39c12;
-  border-radius: 6px;
-  padding: 2px 5px;
-  width: 90px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-  margin-bottom: 3px;
-}
-
-.sk-unit-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.68rem;
-  font-weight: bold;
-  color: #ffffff;
-  margin-bottom: 2px;
-}
-
-.sk-unit-lvl {
-  color: #f1c40f;
-}
-
-.sk-hp-bg {
-  width: 100%;
-  height: 5px;
-  background: #222;
-  border-radius: 3px;
-  overflow: hidden;
-  border: 1px solid #000;
-}
-
-.sk-hp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #2ecc71, #27ae60);
-  width: 100%;
-  transition: width 0.3s ease;
-}
-
-.sk-hp-fill.enemy {
-  background: linear-gradient(90deg, #e74c3c, #c0392b);
-}
-
-/* 포켓몬 스프라이트 */
-.sk-sprite-wrapper {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.sk-sprite {
-  width: 60px;
-  height: 60px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7));
-}
-
-.sk-sprite.flip {
-  transform: scaleX(-1);
-}
-
-.sk-shadow {
-  position: absolute;
-  bottom: -3px;
-  width: 45px;
-  height: 10px;
-  background: rgba(0, 0, 0, 0.45);
-  border-radius: 50%;
-  z-index: -1;
-}
-
-/* 하단 배틀 로그 & 컨트롤 */
-.sk-bottom-control {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sk-start-btn {
-  background: linear-gradient(45deg, #e94560, #c0392b);
-  font-size: 1.05rem;
-  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
-}
-
-.sk-dialogue-box {
-  position: relative;
-  z-index: 5;
-  background: rgba(10, 15, 26, 0.92);
-  border: 2px solid #f39c12;
-  border-radius: 8px;
-  padding: 12px 16px;
-  min-height: 54px;
-  font-size: 0.95rem;
-  font-weight: bold;
-  color: #ffffff;
-  line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-}
-
-/* HP 바 감량 애니메이션 연출 */
-.sk-hp-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #2ecc71, #27ae60);
-  width: 100%;
-  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-/* 다음 턴 진행 버튼 */
-.sk-next-btn {
-  background: linear-gradient(45deg, #f39c12, #e67e22);
-  color: #000;
-  font-size: 1.05rem;
-  font-weight: 900;
-  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-}
-.sk-next-btn:hover {
-  filter: brightness(1.1);
-}
-
-/* ==========================================
- * 포켓몬 상세 정보 모달 & 육각형 레이더 그래프
- * ========================================== */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  justify-content: center;
-  align-items: center;
-  padding: 15px;
-}
-
-.modal-overlay.active {
-  display: flex;
-}
-
-.modal-content {
-  background: #16213e;
-  border: 2px solid var(--accent-yellow);
-  border-radius: 14px;
-  width: 100%;
-  max-width: 680px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  background: #0f3460;
-  padding: 12px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.modal-title-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.modal-poke-img {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 50%;
-  padding: 4px;
-}
-
-.modal-close-btn {
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 1.8rem;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.modal-body {
-  padding: 18px;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 640px) {
-  .modal-body {
-    grid-template-columns: 1fr;
-  }
-}
-
-.modal-stat-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.25);
-  padding: 12px;
-  border-radius: 10px;
-}
-
-.canvas-wrapper {
-  position: relative;
-  width: 260px;
-  height: 240px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.iv-judge-summary {
-  margin-top: 10px;
-  font-weight: bold;
-  font-size: 0.9rem;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 6px 14px;
-  border-radius: 15px;
-  border: 1px solid var(--accent-yellow);
-}
-
-.modal-moves-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.move-card {
-  background: #0f3460;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.move-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.move-card-name {
-  font-weight: bold;
-  font-size: 0.85rem;
-  color: #ffffff;
-}
-
-.move-card-detail {
-  font-size: 0.75rem;
-  color: var(--text-sub);
-  display: flex;
-  justify-content: space-between;
-}
-
-.type-badge {
-  font-size: 0.68rem;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #fff;
-  background: #555;
-}
-
-/* 타입 색상 배지 */
-.type-노말 { background: #a8a878; }
-.type-불꽃 { background: #f08030; }
-.type-물 { background: #6890f0; }
-.type-풀 { background: #78c850; }
-.type-전기 { background: #f8d030; color: #000; }
-.type-얼음 { background: #98d8d8; color: #000; }
-.type-격투 { background: #c03028; }
-.type-독 { background: #a040a0; }
-.type-땅 { background: #e0c068; color: #000; }
-.type-비행 { background: #a890f0; }
-.type-에스퍼 { background: #f85888; }
-.type-벌레 { background: #a8b820; }
-.type-바위 { background: #b8a038; }
-.type-고스트 { background: #70559b; }
-.type-드래곤 { background: #7038f8; }
-.type-악 { background: #705848; }
-.type-강철 { background: #b8b8d0; color: #000; }
-.type-페어리 { background: #ee99ac; color: #000; }
-
-.modal-stats-table {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.stat-row-item {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 5px 8px;
-  border-radius: 6px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-}
-
-.stat-row-name { color: var(--text-sub); }
-.stat-row-val { font-weight: bold; color: #fff; }
-.stat-row-iv { font-size: 0.72rem; font-weight: bold; color: var(--accent-yellow); }
-
-/* ==========================================
- * 클래시 오브 클랜 (CoC) 스타일 마을 필드 CSS
- * ========================================== */
-.coc-nav {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-@media (max-width: 768px) {
-  .coc-nav {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.facility-top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.back-to-village-btn {
-  background: linear-gradient(45deg, #27ae60, #2ecc71);
-  color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 0.85rem;
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(39, 174, 96, 0.4);
-  transition: transform 0.15s;
-}
-
-.back-to-village-btn:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-/* 마을 필드 컨테이너 */
-.village-field-container {
-  background: radial-gradient(circle, #2e6037 0%, #1c3d22 100%);
-  border: 4px solid #f39c12;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.6), 0 10px 25px rgba(0, 0, 0, 0.5);
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.village-header-banner {
-  text-align: center;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(243, 156, 18, 0.3);
-}
-
-.village-title {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: var(--accent-yellow);
-}
-
-.village-subtitle {
-  font-size: 0.82rem;
-  color: #bdc3c7;
-  margin-top: 2px;
-}
-
-/* 3D Isometric 그리드 전장 */
-.village-grid-map {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px 25px;
-  padding: 15px;
-  background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 39px,
-      rgba(255, 255, 255, 0.04) 40px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 39px,
-      rgba(255, 255, 255, 0.04) 40px
-    );
-  border-radius: 12px;
-}
-
-@media (max-width: 640px) {
-  .village-grid-map {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-/* 건물 노드 아이템 */
-.building-node {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 2px solid transparent;
-  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.building-node:hover {
-  transform: translateY(-8px) scale(1.04);
-  border-color: #f39c12;
-  box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3);
-  background: rgba(0, 0, 0, 0.45);
-}
-
-/* 건물 부유 간판 (Badge) */
-.building-badge {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid var(--accent-yellow);
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: bold;
-  padding: 3px 8px;
-  border-radius: 12px;
-  margin-bottom: 6px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-}
-
-.building-badge.badge-gold {
-  background: linear-gradient(45deg, #e67e22, #f1c40f);
-  color: #000;
-}
-
-.building-badge.badge-blue {
-  background: linear-gradient(45deg, #2980b9, #3498db);
-}
-
-/* 건물 에모지 및 아이콘 래퍼 */
-.building-icon-wrapper {
-  width: 90px;
-  height: 90px;
-  background: radial-gradient(circle, rgba(243, 156, 18, 0.25) 0%, rgba(0, 0, 0, 0.4) 70%);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: 2px dashed rgba(243, 156, 18, 0.5);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-}
-
-.building-node:hover .building-icon-wrapper {
-  border-style: solid;
-  border-color: #f39c12;
-  box-shadow: 0 0 20px rgba(243, 156, 18, 0.7);
-}
-
-.building-emoji {
-  font-size: 3.2rem;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.6));
-}
-
-.building-name-tag {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
-}
-
-/* 상단 HUD 헤더 */
-.coc-hud {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(15, 23, 42, 0.95);
-  padding: 10px 20px;
-  border-bottom: 2px solid #f39c12;
-}
-
-/* 3D 전장 뷰포트 영역 */
-.village-3d-viewport {
-  width: 100%;
-  height: calc(100vh - 120px);
-  min-height: 520px;
-  background: #111;
-  border: 3px solid #f39c12;
-  border-radius: 14px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-}
-
-.village-controls-hint {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.85);
-  border: 1px solid #f39c12;
-  color: #fff;
-  padding: 8px 18px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.facility-top-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-}
-
-.back-to-village-btn {
-  background: linear-gradient(45deg, #27ae60, #2ecc71);
-  color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 0.85rem;
-  cursor: pointer;
-  box-shadow: 0 3px 8px rgba(39, 174, 96, 0.4);
-}
-
-/* ==========================================
- * 3D 건물 머리 위 실시간 부유 라벨 (CoC UI)
- * ========================================== */
-.building-labels-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none; /* 캔버스 드래그 조작 방해 방지 */
-  z-index: 5;
-  overflow: hidden;
-}
-
-.building-3d-label {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translate(-50%, -100%);
-  pointer-events: auto; /* 라벨 직접 클릭 허용 */
-  cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  user-select: none;
-}
-
-.building-3d-label:hover {
-  transform: translate(-50%, -108%) scale(1.08);
-}
-
-/* 상단 기능 부유 간판 (Badge) */
-.building-3d-badge {
-  background: rgba(15, 23, 42, 0.92);
-  border: 1.5px solid var(--accent-yellow);
-  color: #ffffff;
-  font-size: 0.72rem;
-  font-weight: bold;
-  padding: 3px 8px;
-  border-radius: 12px;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
-}
-
-/* 하단 건물 명칭 (Title) */
-.building-3d-title {
-  margin-top: 3px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.8);
-  white-space: nowrap;
-}
-
-/* ==========================================
- * 2D 라이브 마을 UI & 생동감 애니메이션
- * ========================================== */
 .village-2d-field {
   position: relative;
   width: 100%;
   height: 520px;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1c92d2 100%);
+  background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
   border: 2px solid var(--accent-yellow);
 }
 
-/* 흘러가는 공중 구름 배경 */
 .ambient-clouds {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   pointer-events: none;
-  z-index: 1;
 }
 
 .cloud {
   position: absolute;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 50px;
   filter: blur(8px);
   animation: moveCloud linear infinite;
 }
 
-.cloud-1 { width: 180px; height: 60px; top: 10%; left: -200px; animation-duration: 28s; }
-.cloud-2 { width: 240px; height: 80px; top: 45%; left: -260px; animation-duration: 40s; animation-delay: 10s; }
+.cloud-1 { width: 180px; height: 60px; top: 10%; left: -200px; animation-duration: 25s; }
+.cloud-2 { width: 250px; height: 80px; top: 40%; left: -280px; animation-duration: 38s; }
+.cloud-3 { width: 200px; height: 70px; top: 70%; left: -220px; animation-duration: 30s; }
 
 @keyframes moveCloud {
   0% { transform: translateX(0); }
   100% { transform: translateX(120vw); }
 }
 
-/* 건물 노드 컨테이너 (그리드 레이아웃) */
 .building-nodes-container {
-  position: relative;
-  z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
   gap: 20px;
   padding: 30px;
   height: 100%;
-  box-sizing: border-box;
 }
 
-/* 건물 카드 (부유 및 호버 애니메이션) */
 .building-node-card {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.85);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 15px;
   cursor: pointer;
-  user-select: none;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s ease;
   animation: floatIdle 4s ease-in-out infinite alternate;
 }
 
-/* 홀수/짝수 건물에 시차 부유 적용 */
-.building-node-card:nth-child(even) {
-  animation-delay: -2s;
+.building-node-card:hover {
+  transform: translateY(-8px) scale(1.05);
+  border-color: var(--accent-yellow);
+  box-shadow: 0 0 20px rgba(241, 196, 15, 0.4);
 }
 
 @keyframes floatIdle {
@@ -1143,32 +172,8 @@ nav {
   100% { transform: translateY(-8px); }
 }
 
-.building-node-card:hover {
-  transform: translateY(-12px) scale(1.05);
-  border-color: var(--accent-yellow);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(243, 156, 18, 0.4);
-  background: rgba(30, 41, 59, 0.9);
-}
-
-/* 건물 아이콘 */
-.building-icon {
-  font-size: 2.8rem;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
-  transition: transform 0.3s ease;
-}
-
-.building-node-card:hover .building-icon {
-  transform: scale(1.15) rotate(-4deg);
-}
-
-/* 건물 이름 및 상태 태그 */
-.building-title {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: #ffffff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-}
+.building-icon { font-size: 3rem; margin-bottom: 6px; }
+.building-title { font-size: 1.1rem; font-weight: bold; }
 
 .building-status-badge {
   position: absolute;
@@ -1176,10 +181,93 @@ nav {
   background: #0f172a;
   border: 1.5px solid var(--accent-yellow);
   color: #f1c40f;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: bold;
-  padding: 3px 10px;
+  padding: 3px 12px;
   border-radius: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
 }
+
+.squad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.squad-slot {
+  height: 90px;
+  border-radius: 12px;
+  border: 2px dashed var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.squad-slot.occupied {
+  border-style: solid;
+  border-color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.15);
+  justify-content: flex-start;
+  padding: 10px;
+  gap: 10px;
+  position: relative;
+}
+
+.squad-poke-img { width: 56px; height: 56px; object-fit: contain; }
+
+.squad-remove-btn {
+  position: absolute;
+  top: 6px; right: 6px;
+  background: var(--accent-red);
+  color: white; border: none;
+  border-radius: 50%; width: 20px; height: 20px;
+  cursor: pointer;
+}
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 15px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.inventory-card {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.inventory-card img { width: 70px; height: 70px; object-fit: contain; }
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 999;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-box {
+  background: #1e293b;
+  border: 2px solid var(--accent-yellow);
+  border-radius: 16px;
+  width: 90%; max-width: 500px; max-height: 80vh;
+  padding: 20px;
+}
+
+.modal-poke-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px; max-height: 400px; overflow-y: auto;
+}
+
+.divider { border: 0; height: 1px; background: var(--border-color); margin: 15px 0; }
+.btn-action { background: var(--accent-blue); color: #0f172a; border: none; padding: 8px 16px; font-weight: bold; border-radius: 8px; cursor: pointer; }

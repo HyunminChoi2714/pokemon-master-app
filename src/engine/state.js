@@ -1,47 +1,34 @@
 /**
- * state.js - 중앙 게임 상태 및 포켓몬 관리 로직 (수정본)
+ * src/engine/state.js - 전역 데이터 및 탭 전환 상태 관리
  */
 
 const gameState = {
   player: {
+    name: "한지우",
     rank: "Z",
-    rankPoints: 0,
     gold: 1000,
-    gem: 100,
+    gem: 500,
     candy: 50
   },
+  inventory: [],
   squad: {
     front: [null, null, null],
     back: [null, null, null]
   },
-  inventory: [],
-  pokedex: new Set(),
-  purchasedCharms: {
-    goldBonus: false,
-    candyBonus: false
-  }
+  pokedex: new Set()
 };
 
-let isGameInitialized = false;
-
-function updatePokemonMoves(poke) {
-  const learnset = (typeof LEARNSETS_DB !== 'undefined' && LEARNSETS_DB[poke.id]) || [{ move: "몸통박치기", level: 1 }];
-  const availableMoves = learnset
-    .filter(l => poke.level >= l.level)
-    .map(l => l.move);
-  
-  poke.moves = availableMoves.slice(-4);
+function updateTopBarUI() {
+  document.getElementById('resGem').innerText = gameState.player.gem;
+  document.getElementById('resGold').innerText = gameState.player.gold;
+  document.getElementById('resCandy').innerText = gameState.player.candy;
+  document.getElementById('trainerRank').innerText = `${gameState.player.rank}-Rank`;
+  document.getElementById('trainerName').innerText = gameState.player.name;
 }
 
-/**
- * 포켓몬 인스턴스 생성 (6종 스탯 & 6종 IV 세분화)
- */
-function createPokemonInstance(templateId, level = 1) {
-  const template = (typeof POKEMON_DB !== 'undefined' && POKEMON_DB.find(p => p.id === templateId)) || {
-    id: 1, name: "이상해씨", type1: "풀", type2: "독", stage: 1, hp: 45, atk: 49, def: 49, spAtk: 65, spDef: 65, spd: 45, img: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png"
-  };
-
-  // 6종 개체값 (0~31) 무작위 생성
+function createPokemonInstance(templateId, level = 5) {
+  const template = POKEMON_DB.find(p => p.id === templateId) || POKEMON_DB[0];
+  
   const ivs = {
     hp: Math.floor(Math.random() * 32),
     atk: Math.floor(Math.random() * 32),
@@ -61,156 +48,116 @@ function createPokemonInstance(templateId, level = 1) {
   const spDef = Math.floor(((baseSpDef * 2 + ivs.spDef) * level) / 100) + 5;
   const spd = Math.floor(((template.spd * 2 + ivs.spd) * level) / 100) + 5;
 
-  const instance = {
-    uid: 'poke_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+  return {
+    instanceId: 'poke_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     id: template.id,
     name: template.name,
     type1: template.type1,
     type2: template.type2,
     stage: template.stage,
-    level: level,
-    ivs: ivs,
-    maxHp: maxHp,
+    level,
+    exp: 0,
+    maxHp,
     currentHp: maxHp,
-    atk: atk,
-    def: def,
-    spAtk: spAtk,
-    spDef: spDef,
-    spd: spd,
-    img: template.img,
-    moves: []
+    atk, def, spAtk, spDef, spd,
+    ivs,
+    img: template.img
   };
-
-  updatePokemonMoves(instance);
-  return instance;
 }
 
-function initGame() {
-  if (isGameInitialized) return;
-  isGameInitialized = true;
+function addOrUpgradePokemon(templateId, level = 5) {
+  const newInstance = createPokemonInstance(templateId, level);
+  const existingPoke = gameState.inventory.find(p => p.id === templateId);
 
-  const p1 = createPokemonInstance(1, 5);
-  const p2 = createPokemonInstance(4, 5);
-  const p3 = createPokemonInstance(7, 5);
+  if (existingPoke) {
+    let isUpgraded = false;
+    const statsList = ['hp', 'atk', 'def', 'spAtk', 'spDef', 'spd'];
 
-  gameState.inventory.push(p1, p2, p3);
-  gameState.pokedex.add(1).add(4).add(7);
+    statsList.forEach(stat => {
+      if (newInstance.ivs[stat] > existingPoke.ivs[stat]) {
+        existingPoke.ivs[stat] = newInstance.ivs[stat];
+        isUpgraded = true;
+      }
+    });
 
-  gameState.squad.front[0] = p1;
-  gameState.squad.front[1] = p2;
-  gameState.squad.back[0] = p3;
-
-  if (typeof renderUI === 'function') {
-    renderUI();
-  }
-}
-
-function levelUpPokemon(uid) {
-  const poke = gameState.inventory.find(p => p.uid === uid);
-  if (!poke || gameState.player.candy < 10) return false;
-
-  gameState.player.candy -= 10;
-  poke.level += 1;
-  poke.maxHp += 6;
-  poke.currentHp = poke.maxHp;
-  poke.atk += 3;
-  poke.def += 3;
-  poke.spd += 2;
-
-  updatePokemonMoves(poke);
-  if (typeof renderUI === 'function') renderUI();
-  return true;
-}
-
-function evolvePokemon(uid) {
-  const poke = gameState.inventory.find(p => p.uid === uid);
-  if (!poke || typeof EVOLUTION_MAP === 'undefined') return false;
-
-  const evoInfo = EVOLUTION_MAP[poke.id];
-  if (!evoInfo || poke.level < evoInfo.minLevel) return false;
-
-  const nextTemplate = POKEMON_DB.find(p => p.id === evoInfo.nextId);
-  if (!nextTemplate) return false;
-
-  const oldName = poke.name;
-  poke.id = nextTemplate.id;
-  poke.name = nextTemplate.name;
-  poke.type1 = nextTemplate.type1;
-  poke.type2 = nextTemplate.type2;
-  poke.stage = nextTemplate.stage;
-  poke.img = nextTemplate.img;
-
-  poke.maxHp += 20;
-  poke.currentHp = poke.maxHp;
-  poke.atk += 15;
-  poke.def += 15;
-
-  updatePokemonMoves(poke);
-  gameState.pokedex.add(poke.id);
-
-  alert(`✨ ${oldName}이(가) ${poke.name}(으)로 진화했습니다! 🎉`);
-  if (typeof renderUI === 'function') renderUI();
-  return true;
-}
-
-function equipPokemon(poke) {
-  const isAlreadyEquipped = [...gameState.squad.front, ...gameState.squad.back]
-    .some(p => p && p.uid === poke.uid);
-  if (isAlreadyEquipped) return;
-
-  let emptyFront = gameState.squad.front.findIndex(p => p === null);
-  if (emptyFront !== -1) {
-    gameState.squad.front[emptyFront] = poke;
+    if (isUpgraded) recalculatePokemonStats(existingPoke);
+    return { poke: existingPoke, isNew: false, isUpgraded };
   } else {
-    let emptyBack = gameState.squad.back.findIndex(p => p === null);
-    if (emptyBack !== -1) gameState.squad.back[emptyBack] = poke;
+    gameState.inventory.push(newInstance);
+    gameState.pokedex.add(newInstance.id);
+    return { poke: newInstance, isNew: true, isUpgraded: false };
   }
-  if (typeof renderUI === 'function') renderUI();
 }
 
-function removeSlot(line, index) {
-  gameState.squad[line][index] = null;
-  if (typeof renderUI === 'function') renderUI();
+function recalculatePokemonStats(poke) {
+  const template = POKEMON_DB.find(p => p.id === poke.id);
+  if (!template) return;
+
+  const baseSpAtk = template.spAtk || template.atk;
+  const baseSpDef = template.spDef || template.def;
+
+  poke.maxHp = Math.floor(((template.hp * 2 + poke.ivs.hp) * poke.level) / 100) + poke.level + 10;
+  poke.currentHp = poke.maxHp;
+  poke.atk = Math.floor(((template.atk * 2 + poke.ivs.atk) * poke.level) / 100) + 5;
+  poke.def = Math.floor(((template.def * 2 + poke.ivs.def) * poke.level) / 100) + 5;
+  poke.spAtk = Math.floor(((baseSpAtk * 2 + poke.ivs.spAtk) * poke.level) / 100) + 5;
+  poke.spDef = Math.floor(((baseSpDef * 2 + poke.ivs.spDef) * poke.level) / 100) + 5;
+  poke.spd = Math.floor(((template.spd * 2 + poke.ivs.spd) * poke.level) / 100) + 5;
 }
 
-function summonPokemon(count) {
-  const cost = count * 10;
-  if (gameState.player.gem < cost) {
-    alert('Gem이 부족합니다!');
+/**
+ * src/engine/state.js - 디버깅 및 안전장치가 강화된 switchTab 함수
+ */
+function switchTab(tabId) {
+  // 1. 모든 패널 비활성화 후 선택 패널 활성화
+  document.querySelectorAll('.facility-panel').forEach(panel => panel.classList.remove('active'));
+  const target = document.getElementById(`tab-${tabId}`);
+  
+  if (!target) {
+    console.error(`❌ 'tab-${tabId}' ID를 가진 DOM 요소를 찾을 수 없습니다.`);
     return;
   }
+  target.classList.add('active');
 
-  const stage1Pool = POKEMON_DB.filter(p => p.stage === 1);
-  gameState.player.gem -= cost;
-  let newPokes = [];
+  // 2. 상단 재화 바 갱신
+  if (typeof updateTopBarUI === 'function') updateTopBarUI();
 
-  for (let i = 0; i < count; i++) {
-    const randomTemplate = stage1Pool[Math.floor(Math.random() * stage1Pool.length)];
-    const newPoke = createPokemonInstance(randomTemplate.id, 5);
-    gameState.inventory.push(newPoke);
-    gameState.pokedex.add(newPoke.id);
-    newPokes.push(newPoke.name);
-  }
-
-  alert(`🎉 포켓몬 채용 성공!\n획득 포켓몬: ${newPokes.join(', ')}`);
-  if (typeof renderUI === 'function') renderUI();
-}
-
-function getActiveRegionalPassives() {
-  const passives = [];
-  if (typeof REGION_DEFINITIONS === 'undefined') return passives;
-
-  REGION_DEFINITIONS.forEach(reg => {
-    const count = [...gameState.pokedex].filter(id => id >= reg.minId && id <= reg.maxId).length;
-    if (count >= 1) {
-      passives.push({ region: reg.name, name: reg.effectName, desc: reg.effectDesc, count: count });
+  // 3. 탭별 렌더러 안전 호출
+  try {
+    switch (tabId) {
+      case 'village':
+        if (typeof refreshVillageUI === 'function') refreshVillageUI();
+        break;
+      case 'party':
+        if (typeof renderPartyUI === 'function') renderPartyUI();
+        else console.warn('⚠️ renderPartyUI 함수가 로드되지 않았습니다.');
+        break;
+      case 'gym':
+        if (typeof renderGymUI === 'function') renderGymUI();
+        else console.warn('⚠️ renderGymUI 함수가 로드되지 않았습니다.');
+        break;
+      case 'mart':
+        if (typeof renderMartUI === 'function') renderMartUI();
+        else console.warn('⚠️ renderMartUI 함수가 로드되지 않았습니다.');
+        break;
+      case 'daycare':
+        if (typeof renderDaycareUI === 'function') renderDaycareUI();
+        else console.warn('⚠️ renderDaycareUI 함수가 로드되지 않았습니다.');
+        break;
+      case 'lab':
+        if (typeof renderLabUI === 'function') renderLabUI();
+        else console.warn('⚠️ renderLabUI 함수가 로드되지 않았습니다.');
+        break;
+      case 'dex':
+        if (typeof renderDexUI === 'function') renderDexUI();
+        else console.warn('⚠️ renderDexUI 함수가 로드되지 않았습니다.');
+        break;
     }
-  });
-  return passives;
+  } catch (err) {
+    console.error(`❌ [${tabId}] 탭 렌더링 중 오류 발생:`, err);
+  }
 }
 
-function healAllPokemon() {
-  gameState.inventory.forEach(p => p.currentHp = p.maxHp);
-  alert('🏥 모든 포켓몬의 체력이 완치되었습니다!');
-  if (typeof renderUI === 'function') renderUI();
-}
+window.gameState = gameState;
+window.updateTopBarUI = updateTopBarUI;
+window.switchTab = switchTab;
