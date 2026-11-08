@@ -91,7 +91,7 @@ main {
 
 nav {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 }
 
@@ -505,4 +505,41 @@ nav {
   background: linear-gradient(45deg, #e94560, #c0392b);
   font-size: 1.05rem;
   box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
+}
+
+.sk-dialogue-box {
+  position: relative;
+  z-index: 5;
+  background: rgba(10, 15, 26, 0.92);
+  border: 2px solid #f39c12;
+  border-radius: 8px;
+  padding: 12px 16px;
+  min-height: 54px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #ffffff;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+}
+
+/* HP 바 감량 애니메이션 연출 */
+.sk-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+  width: 100%;
+  transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* 다음 턴 진행 버튼 */
+.sk-next-btn {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  color: #000;
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+}
+.sk-next-btn:hover {
+  filter: brightness(1.1);
 }

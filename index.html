@@ -25,7 +25,6 @@
       <button class="nav-btn active" onclick="switchTab('party', event)">🎒 파티/엔트리</button>
       <button class="nav-btn" onclick="switchTab('gym', event)">⚔️ 체육관(랭크전)</button>
       <button class="nav-btn" onclick="switchTab('mart', event)">🛒 프렌들리숍</button>
-      <button class="nav-btn" onclick="switchTab('center', event)">🏥 포켓몬 센터</button>
       <button class="nav-btn" onclick="switchTab('daycare', event)">🏕️ 키우미집</button>
       <button class="nav-btn" onclick="switchTab('lab', event)">🔬 연구소(채용)</button>
       <button class="nav-btn" onclick="switchTab('dex', event)">📖 전국 도감</button>
@@ -54,36 +53,29 @@
     <!-- 2. 체육관 (세븐나이츠 스타일 배틀 탭) -->
     <div id="tab-gym" class="facility-panel">
       <div class="battle-field">
-        <!-- 세븐나이츠 배틀 필드 아레나 -->
         <div class="arena-display">
-          <!-- 상단 오버레이 HUD -->
           <div class="sk-top-hud">
             <div class="sk-stage-name" id="stageTitle">🏛️ Z-랭크 1단계 관장 도전전</div>
             <div class="sk-rank-info" id="rankProgress">승급 포인트: 0 / 100</div>
           </div>
 
-          <!-- 메인 전투 전장 (아군 vs 적군) -->
+          <!-- 메인 전투 전장 -->
           <div class="sk-battle-zone">
-            <!-- 좌측 아군 진형 -->
             <div class="sk-team-side player-side" id="playerBattleSide"></div>
-
-            <!-- 중앙 VS 이펙트 -->
             <div class="sk-vs-badge">VS</div>
-
-            <!-- 우측 적군 진형 -->
             <div class="sk-team-side enemy-side" id="enemyBattleSide"></div>
           </div>
 
-          <!-- 하단 전장 그라운드 효과 -->
-          <div class="sk-ground-shadow"></div>
+          <!-- 포켓몬 텍스트 대사 상자 -->
+          <div class="sk-dialogue-box" id="battleDialogue">
+            ⚔️ 배틀 준비 완료. '승급 배틀 시작' 버튼을 눌러 전투를 진행하세요.
+          </div>
         </div>
 
-        <!-- 하단 컨트롤 액션 바 & 배틀 로그 -->
+        <!-- 하단 조작 버튼 -->
         <div class="sk-bottom-control">
           <button class="action-btn sk-start-btn" id="startBattleBtn" onclick="startBattle()">⚔️ 승급 배틀 시작</button>
-          <div class="battle-log" id="battleLog">
-            <div class="log-line">배틀 준비 완료. '승급 배틀 시작' 버튼을 누르세요.</div>
-          </div>
+          <button class="action-btn sk-next-btn" id="nextTurnBtn" onclick="nextTurn()" style="display:none;">다음 턴 ➡️</button>
         </div>
       </div>
     </div>
