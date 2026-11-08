@@ -1,5 +1,5 @@
 /**
- * src/engine/state.js - 전/후열 2열 입체 배치 및 전장 모든 유닛 순환 턴제 엔진
+ * src/engine/state.js - 1클릭 1라운드 완전 실행 및 스피드 순차 로그 렌더링 엔진
  */
 
 const gameState = {
@@ -21,7 +21,6 @@ const gameState = {
 let selectedSlotInfo = null;
 let currentBattleState = null;
 
-// 상단 재화 바 갱신
 function updateTopBarUI() {
   document.getElementById('resGem').innerText = gameState.player.gem;
   document.getElementById('resGold').innerText = gameState.player.gold;
@@ -30,7 +29,6 @@ function updateTopBarUI() {
   document.getElementById('trainerName').innerText = gameState.player.name;
 }
 
-// 포켓몬 인스턴스 생성
 function createPokemonInstance(templateId, level = 5) {
   const template = POKEMON_DB.find(p => p.id === templateId) || POKEMON_DB[0];
   
@@ -243,7 +241,7 @@ function drawHexagonRadarChart(canvas, poke) {
 }
 
 /* ===================================================
- * 2. ⚔️ 세븐나이츠 2열 전후방 입체 배틀 & 올-유닛 순환 턴제 엔진
+ * 2. ⚔️ 1클릭 1라운드 순차 처리 및 대사창 순차 출력 엔진
  * =================================================== */
 
 function renderGymUI() {
@@ -258,9 +256,7 @@ function renderGymUI() {
           <div class="sk-rank-info" id="rankProgress">승급 포인트: 0 / 100</div>
         </div>
 
-        <!-- 2열 전/후방 배치 배틀 존 -->
         <div class="sk-battle-zone">
-          <!-- 좌측 아군 2열 진형 (뒤: 후열 / 앞: 전열) -->
           <div class="sk-team-side player-side">
             <div class="sk-line back-line" id="playerBackSide"></div>
             <div class="sk-line front-line" id="playerFrontSide"></div>
@@ -268,7 +264,6 @@ function renderGymUI() {
           
           <div class="sk-vs-badge">VS</div>
 
-          <!-- 우측 적군 2열 진형 (앞: 전열 / 뒤: 후열) -->
           <div class="sk-team-side enemy-side">
             <div class="sk-line front-line" id="enemyFrontSide"></div>
             <div class="sk-line back-line" id="enemyBackSide"></div>
@@ -282,7 +277,7 @@ function renderGymUI() {
 
       <div class="sk-bottom-control" style="display: flex; gap: 10px;">
         <button class="btn-action" id="startBattleBtn" onclick="startGymBattle()" style="flex: 1; padding: 12px; font-size: 1rem;">⚔️ 승급 배틀 시작</button>
-        <button class="btn-action" id="nextTurnBtn" onclick="nextTurnGymBattle()" style="display:none; flex: 1; background: var(--accent-yellow); color: #0f172a; padding: 12px; font-size: 1rem;">다음 턴 (라운드 1) ➡️</button>
+        <button class="btn-action" id="nextTurnBtn" onclick="nextTurnGymBattle()" style="display:none; flex: 1; background: var(--accent-yellow); color: #0f172a; padding: 12px; font-size: 1rem;">⚡ 1라운드 실행 ➡️</button>
       </div>
     </div>
   `;
@@ -291,26 +286,23 @@ function renderGymUI() {
 }
 
 function initBattleTeams() {
-  // 아군 파티 6마리 구속
   const pFront = gameState.squad.front.map(p => p ? { ...p, currentHp: p.maxHp, side: 'player', position: 'front' } : null);
   const pBack = gameState.squad.back.map(p => p ? { ...p, currentHp: p.maxHp, side: 'player', position: 'back' } : null);
 
-  // 등록 안 된 빈 슬롯이 있으면 기본 포켓몬 채움
   for (let i = 0; i < 3; i++) {
-    if (!pFront[i]) pFront[i] = { ...createPokemonInstance(1, 5), side: 'player', position: 'front' }; // 이상해씨
-    if (!pBack[i]) pBack[i] = { ...createPokemonInstance(25, 5), side: 'player', position: 'back' };   // 피카츄
+    if (!pFront[i]) pFront[i] = { ...createPokemonInstance(1, 5), side: 'player', position: 'front' };
+    if (!pBack[i]) pBack[i] = { ...createPokemonInstance(25, 5), side: 'player', position: 'back' };
   }
 
-  // 적 관장 6마리 진형 (전열 3 / 후열 3)
   const eFront = [
-    { ...createPokemonInstance(74, 5), side: 'enemy', position: 'front' }, // 꼬마돌
-    { ...createPokemonInstance(95, 5), side: 'enemy', position: 'front' }, // 롱스톤
-    { ...createPokemonInstance(111, 5), side: 'enemy', position: 'front' } // 뿔카노
+    { ...createPokemonInstance(74, 5), side: 'enemy', position: 'front' },
+    { ...createPokemonInstance(95, 5), side: 'enemy', position: 'front' },
+    { ...createPokemonInstance(111, 5), side: 'enemy', position: 'front' }
   ];
   const eBack = [
-    { ...createPokemonInstance(41, 5), side: 'enemy', position: 'back' }, // 주뱃
-    { ...createPokemonInstance(21, 5), side: 'enemy', position: 'back' }, // 깨비참
-    { ...createPokemonInstance(52, 5), side: 'enemy', position: 'back' }  // 나옹
+    { ...createPokemonInstance(41, 5), side: 'enemy', position: 'back' },
+    { ...createPokemonInstance(21, 5), side: 'enemy', position: 'back' },
+    { ...createPokemonInstance(52, 5), side: 'enemy', position: 'back' }
   ];
 
   currentBattleState = {
@@ -319,7 +311,6 @@ function initBattleTeams() {
     enemyFront: eFront,
     enemyBack: eBack,
     round: 1,
-    turnQueue: [], // 이번 라운드에 남은 행동 큐
     isFinished: false
   };
 
@@ -352,13 +343,11 @@ function renderBattleArenaUnits() {
     `;
   };
 
-  // 아군 (후열/전열)
   const pb = document.getElementById('playerBackSide');
   const pf = document.getElementById('playerFrontSide');
   if (pb) pb.innerHTML = currentBattleState.playerBack.map(p => renderUnitHTML(p, false)).join('');
   if (pf) pf.innerHTML = currentBattleState.playerFront.map(p => renderUnitHTML(p, false)).join('');
 
-  // 적군 (전열/후열 - 반전)
   const ef = document.getElementById('enemyFrontSide');
   const eb = document.getElementById('enemyBackSide');
   if (ef) ef.innerHTML = currentBattleState.enemyFront.map(e => renderUnitHTML(e, true)).join('');
@@ -370,99 +359,85 @@ function startGymBattle() {
   document.getElementById('startBattleBtn').style.display = 'none';
   const nextBtn = document.getElementById('nextTurnBtn');
   nextBtn.style.display = 'block';
-  
-  // 1라운드 행동 큐 생성 (스피드 내림차순 정렬)
-  prepareRoundQueue();
-  nextBtn.innerText = `다음 턴 (라운드 ${currentBattleState.round}) ➡️`;
+  nextBtn.innerText = `⚡ 1라운드 실행 ➡️`;
   
   const dialogue = document.getElementById('battleDialogue');
-  dialogue.innerHTML = `⚔️ Z-Rank 승급전 개시! 필드의 모든 포켓몬이 스피드 순서대로 1회 공격을 마쳐야 1턴이 종료됩니다.`;
+  dialogue.innerHTML = `⚔️ Z-Rank 승급전 개시! 버튼을 누르면 한 라운드 동안 모든 생존 포켓몬이 스피드 순으로 순차 공격합니다.`;
 }
 
 /**
- * 필드의 모든 생존 포켓몬을 스피드(Spd) 순서대로 턴 큐에 배치
+ * 🌟 1클릭 = 1라운드 전체 완결 & 발생 활동 순차 로그 출력
  */
-function prepareRoundQueue() {
-  const allUnits = [
+function nextTurnGymBattle() {
+  if (!currentBattleState || currentBattleState.isFinished) return;
+
+  const dialogue = document.getElementById('battleDialogue');
+  const nextBtn = document.getElementById('nextTurnBtn');
+
+  // 이번 라운드에 생존해 있는 전장의 모든 유닛 큐 구성 (스피드 내림차순)
+  const roundQueue = [
     ...currentBattleState.playerFront, ...currentBattleState.playerBack,
     ...currentBattleState.enemyFront, ...currentBattleState.enemyBack
   ].filter(u => u && u.currentHp > 0);
 
-  // 스피드 높은 순 내림차순 정렬
-  allUnits.sort((a, b) => (b.spd || 0) - (a.spd || 0));
-  currentBattleState.turnQueue = allUnits;
-}
+  roundQueue.sort((a, b) => (b.spd || 0) - (a.spd || 0));
 
-/**
- * 라운드 턴 진행: 턴 큐에서 순서대로 유닛을 하나씩 꺼내 행동 수행
- */
-function nextTurnGymBattle() {
-  if (!currentBattleState || currentBattleState.isFinished) return;
-  const dialogue = document.getElementById('battleDialogue');
+  const logLines = [`<b>🔔 [제 ${currentBattleState.round} 라운드 전원 행동 로그]</b>`];
 
-  // 승패 판정 확인
+  // 스피드 순서대로 라운드 내 모든 유닛 1회씩 행동 처리
+  for (let i = 0; i < roundQueue.length; i++) {
+    const attacker = roundQueue[i];
+    if (attacker.currentHp <= 0) continue; // 라운드 진행 중 사망했으면 스킵
+
+    const isPlayerAttacker = attacker.side === 'player';
+    const targetPoolFront = isPlayerAttacker ? currentBattleState.enemyFront : currentBattleState.playerFront;
+    const targetPoolBack = isPlayerAttacker ? currentBattleState.enemyBack : currentBattleState.playerBack;
+
+    let aliveTargets = targetPoolFront.filter(t => t && t.currentHp > 0);
+    if (aliveTargets.length === 0) {
+      aliveTargets = targetPoolBack.filter(t => t && t.currentHp > 0);
+    }
+
+    if (aliveTargets.length === 0) break; // 상대 전원 사망 시 라운드 조기 종료
+
+    const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+    const baseDmg = Math.max(5, attacker.atk - Math.floor(target.def / 2));
+    target.currentHp = Math.max(0, target.currentHp - baseDmg);
+
+    const teamTag = isPlayerAttacker ? `<span style="color:#38bdf8;">[아군]</span>` : `<span style="color:#ef4444;">[적군]</span>`;
+    const faintedTag = target.currentHp <= 0 ? ' <b style="color:#ef4444;">💥(빈사!)</b>' : '';
+
+    logLines.push(`• ${teamTag} <b>${attacker.name}</b>(Spd:${attacker.spd}) ➔ <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해! (HP: ${target.currentHp})${faintedTag}`);
+  }
+
+  // 체력 바 UI 업데이트
+  renderBattleArenaUnits();
+
+  // 승패 판정
   const isPlayerAlive = [...currentBattleState.playerFront, ...currentBattleState.playerBack].some(u => u && u.currentHp > 0);
   const isEnemyAlive = [...currentBattleState.enemyFront, ...currentBattleState.enemyBack].some(u => u && u.currentHp > 0);
 
-  if (!isPlayerAlive) {
-    dialogue.innerHTML = `<span style="color:#ef4444; font-weight:bold;">💀 아군 포켓몬 전원 전투 불능! 승급 배틀 패배...</span>`;
-    currentBattleState.isFinished = true;
-    document.getElementById('nextTurnBtn').style.display = 'none';
-    document.getElementById('startBattleBtn').style.display = 'block';
-    return;
-  }
-
   if (!isEnemyAlive) {
-    dialogue.innerHTML = `<span style="color:#2ecc71; font-weight:bold;">🎉 승리! 적 6마리를 모두 격파했습니다! (보상: 200 Gold, 20 Gem)</span>`;
+    logLines.push(`<br><span style="color:#2ecc71; font-weight:bold; font-size:1rem;">🎉 [승리] 체육관 관장의 포켓몬을 모두 격파했습니다! (+200 Gold, +20 Gem)</span>`);
     gameState.player.gold += 200;
     gameState.player.gem += 20;
     updateTopBarUI();
     currentBattleState.isFinished = true;
-    document.getElementById('nextTurnBtn').style.display = 'none';
+    nextBtn.style.display = 'none';
     document.getElementById('startBattleBtn').style.display = 'block';
-    return;
-  }
-
-  // 턴 큐가 비어있으면 1라운드(1턴) 완결 -> 다음 라운드 큐 재구성
-  if (!currentBattleState.turnQueue || currentBattleState.turnQueue.length === 0) {
+  } else if (!isPlayerAlive) {
+    logLines.push(`<br><span style="color:#ef4444; font-weight:bold; font-size:1rem;">💀 [패배] 아군 포켓몬 전원이 쓰러졌습니다... 다시 도전하세요!</span>`);
+    currentBattleState.isFinished = true;
+    nextBtn.style.display = 'none';
+    document.getElementById('startBattleBtn').style.display = 'block';
+  } else {
     currentBattleState.round += 1;
-    prepareRoundQueue();
-    dialogue.innerHTML = `🔔 <b>[라운드 ${currentBattleState.round} 시작]</b> 전장의 포켓몬 스피드 순서로 새로운 턴 순서가 정렬되었습니다!`;
-    document.getElementById('nextTurnBtn').innerText = `다음 턴 (라운드 ${currentBattleState.round}) ➡️`;
-    return;
+    nextBtn.innerText = `⚡ ${currentBattleState.round}라운드 실행 ➡️`;
   }
 
-  // 행동을 수행할 포켓몬 꺼내기 (스피드 최우선 순위)
-  let attacker = currentBattleState.turnQueue.shift();
-  
-  // 이미 쓰러진 포켓몬이면 다음 유닛으로 진행
-  while (attacker && attacker.currentHp <= 0 && currentBattleState.turnQueue.length > 0) {
-    attacker = currentBattleState.turnQueue.shift();
-  }
-  if (!attacker || attacker.currentHp <= 0) return;
-
-  // 타겟 선정 (상대팀 전열 우선, 없으면 후열 타겟팅)
-  const isPlayerAttacker = attacker.side === 'player';
-  const targetPoolFront = isPlayerAttacker ? currentBattleState.enemyFront : currentBattleState.playerFront;
-  const targetPoolBack = isPlayerAttacker ? currentBattleState.enemyBack : currentBattleState.playerBack;
-
-  let aliveTargets = targetPoolFront.filter(t => t && t.currentHp > 0);
-  if (aliveTargets.length === 0) {
-    aliveTargets = targetPoolBack.filter(t => t && t.currentHp > 0);
-  }
-
-  if (aliveTargets.length === 0) return;
-
-  const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
-
-  // 데미지 및 타입 상성 계산
-  const baseDmg = Math.max(5, attacker.atk - Math.floor(target.def / 2));
-  target.currentHp = Math.max(0, target.currentHp - baseDmg);
-
-  const teamName = isPlayerAttacker ? `<span style="color:#38bdf8;">[아군]</span>` : `<span style="color:#ef4444;">[적군]</span>`;
-  dialogue.innerHTML = `⚔️ ${teamName} <b>${attacker.name}</b> (Spd:${attacker.spd})의 공격! -> <b>${target.name}</b>에게 <b style="color:#f1c40f;">${baseDmg}</b> 피해! ${target.currentHp <= 0 ? '💥(쓰러짐!)' : ''}`;
-
-  renderBattleArenaUnits();
+  // 대사창에 전체 행동 순차 기록 및 자동으로 맨 아래 스크롤
+  dialogue.innerHTML = logLines.join('<br>');
+  dialogue.scrollTop = dialogue.scrollHeight;
 }
 
 /* ===================================================

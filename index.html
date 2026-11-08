@@ -22,9 +22,8 @@
       <button class="nav-home-btn" onclick="switchTab('village')">🏰 마을로</button>
     </header>
 
-    <!-- 메인 컨텐츠 영역 (시설별 탭) -->
+    <!-- 메인 컨텐츠 영역 -->
     <main class="content-area">
-      
       <!-- 1. 마을 탭 -->
       <section id="tab-village" class="facility-panel active">
         <div class="village-header">
@@ -50,11 +49,11 @@
         <div class="squad-section">
           <h3>⚔️ 배틀 출전 엔트리 (전열 3 / 후열 3)</h3>
           <div class="squad-row-group">
-            <div class="squad-row-label">전열 (Front)</div>
+            <div class="squad-row-label">전열 (Front - 탱커/물리)</div>
             <div id="squadFrontContainer" class="squad-grid"></div>
           </div>
           <div class="squad-row-group" style="margin-top: 15px;">
-            <div class="squad-row-label">후열 (Back)</div>
+            <div class="squad-row-label">후열 (Back - 딜러/스피드)</div>
             <div id="squadBackContainer" class="squad-grid"></div>
           </div>
         </div>
@@ -65,10 +64,10 @@
         </div>
       </section>
 
-      <!-- 3. 체육관 탭 (세븐나이츠 아레나 구도) -->
+      <!-- 3. 체육관 탭 (2열 아레나 전장 & 순차 라운드 로그) -->
       <section id="tab-gym" class="facility-panel">
         <div class="panel-header">
-          <h2>⚔️ 포켓몬 체육관 (Z-Rank 승급 아레나)</h2>
+          <h2>⚔️ 포켓몬 체육관 (Z-Rank 승급전)</h2>
           <button class="back-btn" onclick="switchTab('village')">⬅ 마을로</button>
         </div>
         <div id="gymContentContainer" class="facility-content"></div>
@@ -109,11 +108,10 @@
         </div>
         <div id="dexContentContainer" class="facility-content"></div>
       </section>
-
     </main>
   </div>
 
-  <!-- 1) 출전 선택 모달 -->
+  <!-- 파티 선택 모달 -->
   <div id="squadSelectModal" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
@@ -124,7 +122,7 @@
     </div>
   </div>
 
-  <!-- 2) 육각형 스탯/개체값(IV) & 장착 기술 4종 모달 -->
+  <!-- 육각형 스탯 & 장착 기술 모달 -->
   <div id="pokeDetailModal" class="modal-overlay hidden">
     <div class="modal-box stat-detail-modal">
       <div class="modal-header">
@@ -132,12 +130,9 @@
         <button class="close-btn" onclick="closePokeDetailModal()">✕</button>
       </div>
       <div class="modal-body-detail">
-        <!-- 6축 육각형 레이더 그래프 캔버스 -->
         <div class="radar-container">
           <canvas id="statRadarCanvas" width="260" height="260"></canvas>
         </div>
-        
-        <!-- 개체값 및 장착 기술 목록 -->
         <div class="poke-info-detail-side">
           <div id="detailIvRatings" class="iv-rating-box"></div>
           <h4 style="margin: 10px 0 6px 0; color: #f1c40f;">⚔️ 장착 기술 (4종)</h4>
@@ -147,7 +142,7 @@
     </div>
   </div>
 
-  <!-- 필수 스크립트 연결 -->
+  <!-- 스크립트 연결 -->
   <script src="src/data/pokemon.js"></script>
   <script src="src/engine/state.js"></script>
   <script src="src/engine/village.js"></script>
