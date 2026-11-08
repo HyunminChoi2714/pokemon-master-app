@@ -64,6 +64,7 @@ function renderSquadSlots() {
       const slotEl = document.createElement('div');
       slotEl.className = `slot ${poke ? 'occupied' : ''}`;
       slotEl.onclick = () => removeSlot(line, index);
+      slotEl.onclick = () => openPokemonDetail(poke.uid);
 
       if (poke) {
         slotEl.innerHTML = `
@@ -137,6 +138,7 @@ function renderInventory() {
     if (isEquipped) card.style.opacity = '0.5';
 
     card.onclick = () => equipPokemon(poke);
+    card.onclick = () => equipPokemonDetail(poke.uid);
     card.innerHTML = `
       <span class="stage-badge">${poke.stage === 1 ? '🌱 기본체' : (poke.stage === 2 ? '⚡ 2단계' : '🔥 최종체')}</span>
       <img src="${poke.img}" class="poke-img" alt="${poke.name}" />
