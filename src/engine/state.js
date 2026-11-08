@@ -1,5 +1,5 @@
 /**
- * src/engine/state.js - 게임 데이터, 스탯 계산 및 통합 UI 렌더링 엔진
+ * src/engine/state.js - 세븐나이츠 배틀 시뮬레이터 & 육각형(Radar) 스탯/기술 모달 통합 엔진
  */
 
 const gameState = {
@@ -19,6 +19,7 @@ const gameState = {
 };
 
 let selectedSlotInfo = null;
+let currentBattleState = null;
 
 // 상단 재화 바 갱신
 function updateTopBarUI() {
@@ -29,7 +30,7 @@ function updateTopBarUI() {
   document.getElementById('trainerName').innerText = gameState.player.name;
 }
 
-// 포켓몬 인스턴스 생성
+// 포켓몬 인스턴스 생성 (6개 개체값 0~31 부여)
 function createPokemonInstance(templateId, level = 5) {
   const template = POKEMON_DB.find(p => p.id === templateId) || POKEMON_DB[0];
   
@@ -37,9 +38,9 @@ function createPokemonInstance(templateId, level = 5) {
     hp: Math.floor(Math.random() * 32),
     atk: Math.floor(Math.random() * 32),
     def: Math.floor(Math.random() * 32),
-    spAtk: Math.floor(Math.random() * 32),
+    spd: Math.floor(Math.random() * 32),
     spDef: Math.floor(Math.random() * 32),
-    spd: Math.floor(Math.random() * 32)
+    spAtk: Math.floor(Math.random() * 32)
   };
 
   const baseSpAtk = template.spAtk || template.atk;
@@ -69,14 +70,13 @@ function createPokemonInstance(templateId, level = 5) {
   };
 }
 
-// 포켓몬 획득 및 중복 IV 갱신
 function addOrUpgradePokemon(templateId, level = 5) {
   const newInstance = createPokemonInstance(templateId, level);
   const existingPoke = gameState.inventory.find(p => p.id === templateId);
 
   if (existingPoke) {
     let isUpgraded = false;
-    const statsList = ['hp', 'atk', 'def', 'spAtk', 'spDef', 'spd'];
+    const statsList = ['hp', 'atk', 'def', 'spd', 'spDef', 'spAtk'];
 
     statsList.forEach(stat => {
       if (newInstance.ivs[stat] > existingPoke.ivs[stat]) {
@@ -111,47 +111,339 @@ function recalculatePokemonStats(poke) {
 }
 
 /* ===================================================
- * 시설별 통합 UI 렌더링 함수 세트
+ * 1. 📊 6축 육각형 레이더 스탯 그래프 & 기술 4종 모달
  * =================================================== */
 
-// 1. 체육관 UI 렌더링
+function getIvRatingText(iv) {
+  if (iv === 31) return `<span style="color:#f1c40f; font-weight:bold;">최고! (31)</span>`;
+  if (iv >= 26) return `<span style="color:#2ecc71;">훌륭하다 (${iv})</span>`;
+  if (iv >= 16) return `<span style="color:#38bdf8;">잘함 (${iv})</span>`;
+  if (iv >= 6) return `<span style="color:#ffffff;">보통 (${iv})</span>`;
+  return `<span style="color:#ef4444;">별로 (${iv})</span>`;
+}
+
+function getPokemonSkills(poke) {
+  const t = poke.type1 || '노말';
+  return [
+    { name: `${t}의 일격`, type: t, power: 40 + poke.level * 2, acc: 100 },
+    { name: '몸통박치기', type: '노말', power: 35, acc: 100 },
+    { name: `${t} 파동`, type: t, power: 65 + poke.level * 3, acc: 90 },
+    { name: '파괴광선', type: '노말', power: 120, acc: 85 }
+  ];
+}
+
+function openPokeDetailModal(instanceId) {
+  const poke = gameState.inventory.find(p => p.instanceId === instanceId);
+  if (!poke) return;
+
+  document.getElementById('detailPokeTitle').innerText = `📊 ${poke.name} (Lv.${poke.level}) 스탯 / 개체값`;
+
+  // 개체값 평가 표기
+  const ivBox = document.getElementById('detailIvRatings');
+  const ivs = poke.ivs || { hp:0, atk:0, def:0, spd:0, spDef:0, spAtk:0 };
+  ivBox.innerHTML = `
+    <div class="iv-stat-row"><span>HP 개체값:</span> ${getIvRatingText(ivs.hp)}</div>
+    <div class="iv-stat-row"><span>공격 개체값:</span> ${getIvRatingText(ivs.atk)}</div>
+    <div class="iv-stat-row"><span>방어 개체값:</span> ${getIvRatingText(ivs.def)}</div>
+    <div class="iv-stat-row"><span>스피드 개체값:</span> ${getIvRatingText(ivs.spd)}</div>
+    <div class="iv-stat-row"><span>특수방어 개체값:</span> ${getIvRatingText(ivs.spDef)}</div>
+    <div class="iv-stat-row"><span>특수공격 개체값:</span> ${getIvRatingText(ivs.spAtk)}</div>
+  `;
+
+  // 기술 4종 표기
+  const skillsContainer = document.getElementById('detailSkillsContainer');
+  const skills = getPokemonSkills(poke);
+  skillsContainer.innerHTML = skills.map(s => `
+    <div class="skill-card">
+      <span class="skill-type-badge">${s.type}</span>
+      <div style="font-weight:bold;">${s.name}</div>
+      <div style="color:#cbd5e1; font-size:0.75rem;">위력 ${s.power} / 명중 ${s.acc}%</div>
+    </div>
+  `).join('');
+
+  document.getElementById('pokeDetailModal').classList.remove('hidden');
+
+  // 육각형 레이더 캔버스 그리기
+  setTimeout(() => {
+    const canvas = document.getElementById('statRadarCanvas');
+    if (canvas) drawHexagonRadarChart(canvas, poke);
+  }, 50);
+}
+
+function closePokeDetailModal() {
+  document.getElementById('pokeDetailModal').classList.add('hidden');
+}
+
+/**
+ * 6축 육각형 레이더 그래프 캔버스 렌더링 함수
+ */
+function drawHexagonRadarChart(canvas, poke) {
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = 80;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // 6개 축 라벨 (HP, 공격, 방어, 스피드, 특방, 특공)
+  const labels = ["HP", "공격", "방어", "스피드", "특방", "특공"];
+  const angles = [-Math.PI/2, -Math.PI/6, Math.PI/6, Math.PI/2, 5*Math.PI/6, -5*Math.PI/6];
+
+  // 1) 격자 육각형 3단계 그리기 (33%, 66%, 100%)
+  [0.33, 0.66, 1.0].forEach(scale => {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const x = centerX + radius * scale * Math.cos(angles[i]);
+      const y = centerY + radius * scale * Math.sin(angles[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // 2) 축선 그리기 및 라벨 표시
+  ctx.font = "bold 11px sans-serif";
+  ctx.fillStyle = "#f1c40f";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i < 6; i++) {
+    const x = centerX + radius * Math.cos(angles[i]);
+    const y = centerY + radius * Math.sin(angles[i]);
+    
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+    ctx.stroke();
+
+    // 라벨 텍스트 위치 띄우기
+    const lx = centerX + (radius + 20) * Math.cos(angles[i]);
+    const ly = centerY + (radius + 20) * Math.sin(angles[i]);
+    ctx.fillText(labels[i], lx, ly);
+  }
+
+  // 3) 개체값(IV 0~31) 스탯 다각형 영역 그리기
+  const ivs = poke.ivs || { hp:15, atk:15, def:15, spd:15, spDef:15, spAtk:15 };
+  const values = [
+    (ivs.hp || 0) / 31,
+    (ivs.atk || 0) / 31,
+    (ivs.def || 0) / 31,
+    (ivs.spd || 0) / 31,
+    (ivs.spDef || 0) / 31,
+    (ivs.spAtk || 0) / 31
+  ];
+
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const valRatio = Math.max(0.1, values[i]); // 최소 0.1 보장
+    const x = centerX + radius * valRatio * Math.cos(angles[i]);
+    const y = centerY + radius * valRatio * Math.sin(angles[i]);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+
+  // 영역 채우기 & 테두리
+  ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
+  ctx.fill();
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+/* ===================================================
+ * 2. ⚔️ 세븐나이츠 형태 체육관 아레나 턴제 전투 시스템[cite: 1]
+ * =================================================== */
+
 function renderGymUI() {
   const container = document.getElementById('gymContentContainer');
   if (!container) return;
 
   container.innerHTML = `
-    <div style="text-align: center; padding: 30px; background: rgba(15, 23, 42, 0.6); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
-      <h3 style="font-size: 1.4rem; color: #f1c40f; margin-bottom: 10px;">🏆 Z-Rank 체육관 관장 도전</h3>
-      <p style="margin: 10px 0; color: #cbd5e1; font-size: 1rem;">상대 관장: <b>웅이</b> (꼬마돌 Lv.5 / 롱스톤 Lv.5)</p>
-      <button class="btn-action" onclick="startGymBattle()" style="font-size: 1.1rem; padding: 12px 24px; margin-top: 15px;">⚔️ 배틀 시작</button>
-      <div id="battleLog" style="margin-top: 25px; text-align: left; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); min-height: 80px; max-height: 200px; overflow-y: auto;">
-        <span style="color: #94a3b8;">배틀 시작 버튼을 누르면 전투 결과가 표시됩니다.</span>
+    <div class="battle-field">
+      <!-- 1) 세븐나이츠 대면 아레나 필드 -->
+      <div class="arena-display">
+        <div class="sk-top-hud">
+          <div class="sk-stage-name" id="stageTitle">🏛️ Z-랭크 1단계 관장 도전전</div>
+          <div class="sk-rank-info" id="rankProgress">승급 포인트: 0 / 100</div>
+        </div>
+
+        <div class="sk-battle-zone">
+          <!-- 좌측 아군 진형 -->
+          <div class="sk-team-side player-side" id="playerBattleSide"></div>
+          
+          <div class="sk-vs-badge">VS</div>
+
+          <!-- 우측 적군 진형 (반전) -->
+          <div class="sk-team-side enemy-side" id="enemyBattleSide"></div>
+        </div>
+      </div>
+
+      <!-- 2) 하단 배틀 안내 대사 상자 -->
+      <div class="sk-dialogue-box" id="battleDialogue">
+        ⚔️ 배틀 준비 완료. '승급 배틀 시작' 버튼을 눌러 전투를 진행하세요.
+      </div>
+
+      <!-- 3) 하단 조작 버튼 -->
+      <div class="sk-bottom-control" style="display: flex; gap: 10px;">
+        <button class="btn-action" id="startBattleBtn" onclick="startGymBattle()" style="flex: 1; padding: 12px; font-size: 1rem;">⚔️ 승급 배틀 시작</button>
+        <button class="btn-action" id="nextTurnBtn" onclick="nextTurnGymBattle()" style="display:none; flex: 1; background: var(--accent-yellow); color: #0f172a; padding: 12px; font-size: 1rem;">다음 턴 (1턴) ➡️</button>
       </div>
     </div>
   `;
+
+  // initial arena state render
+  initBattleTeams();
+}
+
+function initBattleTeams() {
+  // 아군 파티
+  const pTeam = getPlayerBattleTeam();
+  // 적 관장 파티 (웅이 꼬마돌/롱스톤)
+  const eTeam = [
+    createPokemonInstance(74, 5), // 꼬마돌
+    createPokemonInstance(95, 5)  // 롱스톤
+  ];
+
+  currentBattleState = {
+    playerTeam: pTeam,
+    enemyTeam: eTeam,
+    turn: 1,
+    isFinished: false
+  };
+
+  renderBattleArenaUnits();
+}
+
+function getPlayerBattleTeam() {
+  const squadPokes = [...gameState.squad.front, ...gameState.squad.back].filter(p => p !== null);
+  if (squadPokes.length > 0) return squadPokes.map(p => ({ ...p, currentHp: p.maxHp }));
+  if (gameState.inventory.length > 0) return gameState.inventory.slice(0, 3).map(p => ({ ...p, currentHp: p.maxHp }));
+  
+  // 기본 피카츄 생성
+  return [createPokemonInstance(25, 5)];
+}
+
+function renderBattleArenaUnits() {
+  const pSide = document.getElementById('playerBattleSide');
+  const eSide = document.getElementById('enemyBattleSide');
+  if (!pSide || !eSide || !currentBattleState) return;
+
+  // 아군 (좌측)
+  pSide.innerHTML = currentBattleState.playerTeam.map(p => {
+    const isFainted = p.currentHp <= 0;
+    const hpPct = Math.max(0, Math.min(100, (p.currentHp / p.maxHp) * 100));
+    return `
+      <div class="sk-unit ${isFainted ? 'fainted' : ''}">
+        <div class="sk-hp-badge">
+          <div class="sk-unit-info">
+            <span class="sk-unit-lvl">Lv.${p.level}</span>
+            <span>${p.name}</span>
+          </div>
+          <div class="sk-hp-bg">
+            <div class="sk-hp-fill" style="width: ${hpPct}%;"></div>
+          </div>
+        </div>
+        <div class="sk-sprite-wrapper">
+          <img src="${p.img}" class="sk-sprite">
+          <div class="sk-shadow"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 적군 (우측 - 반전)
+  eSide.innerHTML = currentBattleState.enemyTeam.map(e => {
+    const isFainted = e.currentHp <= 0;
+    const hpPct = Math.max(0, Math.min(100, (e.currentHp / e.maxHp) * 100));
+    return `
+      <div class="sk-unit ${isFainted ? 'fainted' : ''}">
+        <div class="sk-hp-badge">
+          <div class="sk-unit-info">
+            <span class="sk-unit-lvl">Lv.${e.level}</span>
+            <span>${e.name}</span>
+          </div>
+          <div class="sk-hp-bg">
+            <div class="sk-hp-fill enemy" style="width: ${hpPct}%;"></div>
+          </div>
+        </div>
+        <div class="sk-sprite-wrapper">
+          <img src="${e.img}" class="sk-sprite flip">
+          <div class="sk-shadow"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function startGymBattle() {
-  const log = document.getElementById('battleLog');
-  if (!log) return;
+  initBattleTeams();
+  document.getElementById('startBattleBtn').style.display = 'none';
+  const nextBtn = document.getElementById('nextTurnBtn');
+  nextBtn.style.display = 'block';
+  nextBtn.innerText = `다음 턴 (1턴) ➡️`;
+  
+  const dialogue = document.getElementById('battleDialogue');
+  dialogue.innerHTML = `⚔️ Z-Rank 체육관 관장 배틀 개시! '다음 턴' 버튼을 눌러 공격하세요.`;
+}
 
-  const hasSquad = gameState.squad.front.some(p => p !== null) || gameState.squad.back.some(p => p !== null);
-  if (!hasSquad) {
-    log.innerHTML = `<div style="color: #ef4444; font-weight: bold;">⚠️ 출전 파티에 포켓몬을 먼저 등록해주세요! (트레이너 아지트에서 설정)</div>`;
+function nextTurnGymBattle() {
+  if (!currentBattleState || currentBattleState.isFinished) return;
+
+  const dialogue = document.getElementById('battleDialogue');
+  const alivePlayer = currentBattleState.playerTeam.find(p => p.currentHp > 0);
+  const aliveEnemy = currentBattleState.enemyTeam.find(e => e.currentHp > 0);
+
+  if (!alivePlayer) {
+    dialogue.innerHTML = `<span style="color:#ef4444;">💀 아군 포켓몬이 모두 쓰러졌습니다... 체육관 관장 배틀 패배!</span>`;
+    currentBattleState.isFinished = true;
+    document.getElementById('nextTurnBtn').style.display = 'none';
+    document.getElementById('startBattleBtn').style.display = 'block';
     return;
   }
 
-  log.innerHTML = `
-    <div style="color: #38bdf8;">🔔 Z-Rank 체육관 배틀 시작!</div>
-    <div style="margin-top: 5px;">⚔️ 내 파티 포켓몬들이 웅이의 포켓몬과 격돌합니다...</div>
-    <div style="color: #2ecc71; margin-top: 10px; font-weight: bold; font-size: 1.1rem;">🎉 축하합니다! 승리하였습니다! (보상: 200 Gold, 20 Gem)</div>
-  `;
-  gameState.player.gold += 200;
-  gameState.player.gem += 20;
-  updateTopBarUI();
+  if (!aliveEnemy) {
+    dialogue.innerHTML = `<span style="color:#2ecc71; font-weight:bold;">🎉 관장의 모든 포켓몬을 격파했습니다! 승리! (보상: 200 Gold, 20 Gem)</span>`;
+    gameState.player.gold += 200;
+    gameState.player.gem += 20;
+    updateTopBarUI();
+    currentBattleState.isFinished = true;
+    document.getElementById('nextTurnBtn').style.display = 'none';
+    document.getElementById('startBattleBtn').style.display = 'block';
+    return;
+  }
+
+  // 1) 아군 공격
+  const dmgToEnemy = Math.max(5, alivePlayer.atk - Math.floor(aliveEnemy.def / 2));
+  aliveEnemy.currentHp = Math.max(0, aliveEnemy.currentHp - dmgToEnemy);
+
+  // 2) 적군 반격
+  let counterMsg = "";
+  if (aliveEnemy.currentHp > 0) {
+    const dmgToPlayer = Math.max(5, aliveEnemy.atk - Math.floor(alivePlayer.def / 2));
+    alivePlayer.currentHp = Math.max(0, alivePlayer.currentHp - dmgToPlayer);
+    counterMsg = ` / ${aliveEnemy.name}의 반격으로 ${dmgToPlayer} 피해!`;
+  } else {
+    counterMsg = ` / 💥 ${aliveEnemy.name}(이)가 쓰러졌습니다!`;
+  }
+
+  dialogue.innerHTML = `⚔️ [${currentBattleState.turn}턴] ${alivePlayer.name}의 공격! ${aliveEnemy.name}에게 ${dmgToEnemy} 피해!${counterMsg}`;
+  
+  currentBattleState.turn += 1;
+  document.getElementById('nextTurnBtn').innerText = `다음 턴 (${currentBattleState.turn}턴) ➡️`;
+  renderBattleArenaUnits();
 }
 
-// 2. 파티 & 인벤토리 UI 렌더링
+/* ===================================================
+ * 3. 파티 / 프렌들리숍 / 키우미집 / 연구소 / 도감 UI
+ * =================================================== */
+
 function renderPartyUI() {
   renderSquadSlots();
   renderInventoryList();
@@ -183,8 +475,8 @@ function createSlotHTML(row, index, poke) {
   }
   return `
     <div class="squad-slot occupied">
-      <img src="${poke.img}" class="squad-poke-img">
-      <div>
+      <img src="${poke.img}" class="squad-poke-img" onclick="openPokeDetailModal('${poke.instanceId}')">
+      <div onclick="openPokeDetailModal('${poke.instanceId}')" style="cursor:pointer;">
         <div style="font-weight: bold;">${poke.name}</div>
         <div style="font-size: 0.8rem; color: #cbd5e1;">Lv.${poke.level}</div>
       </div>
@@ -207,11 +499,11 @@ function renderInventoryList() {
     const ivPct = Math.floor((totalIv / 186) * 100);
 
     return `
-      <div class="inventory-card">
+      <div class="inventory-card" onclick="openPokeDetailModal('${poke.instanceId}')">
         <img src="${poke.img}">
         <div style="font-weight: bold; margin-top: 4px;">${poke.name}</div>
         <div style="font-size: 0.8rem; color: #cbd5e1;">Lv.${poke.level}</div>
-        <div style="font-size: 0.75rem; color: #f1c40f; font-weight: bold; margin-top: 4px;">IV ${ivPct}%</div>
+        <div style="font-size: 0.75rem; color: #f1c40f; font-weight: bold; margin-top: 4px;">IV ${ivPct}% (상세보기)</div>
       </div>
     `;
   }).join('');
@@ -257,7 +549,6 @@ function removeFromSquad(row, index) {
   renderSquadSlots();
 }
 
-// 3. 프렌들리숍 UI 렌더링
 function renderMartUI() {
   const container = document.getElementById('martContentContainer');
   if (!container) return;
@@ -291,7 +582,6 @@ function buyMartItem(type, amount, cost) {
   updateTopBarUI();
 }
 
-// 4. 포켓몬 키우미집 UI 렌더링
 function renderDaycareUI() {
   const container = document.getElementById('daycareContentContainer');
   if (!container) return;
@@ -331,7 +621,6 @@ function levelUpPokemon(instanceId) {
   }
 }
 
-// 5. 오박사 연구소 UI 렌더링
 function renderLabUI() {
   const container = document.getElementById('labContentContainer');
   if (!container) return;
@@ -375,7 +664,6 @@ function summonLabPokemon(count) {
   alert(`🎲 포켓몬 소환 결과!\n\n` + results.join('\n'));
 }
 
-// 6. 전국 도감 UI 렌더링
 function renderDexUI() {
   const container = document.getElementById('dexContentContainer');
   if (!container) return;
@@ -402,9 +690,6 @@ function renderDexUI() {
   `;
 }
 
-/* ===================================================
- * 탭 전환 바인딩 함수 (switchTab)
- * =================================================== */
 function switchTab(tabId) {
   document.querySelectorAll('.facility-panel').forEach(panel => panel.classList.remove('active'));
   const target = document.getElementById(`tab-${tabId}`);
@@ -413,7 +698,6 @@ function switchTab(tabId) {
   target.classList.add('active');
   updateTopBarUI();
 
-  // 탭 변경 즉시 해당 시설 UI 렌더링 실행
   switch (tabId) {
     case 'village':
       if (typeof refreshVillageUI === 'function') refreshVillageUI();
@@ -439,17 +723,20 @@ function switchTab(tabId) {
   }
 }
 
-// 전역 스코프 등록
+// 전역 바인딩
 window.gameState = gameState;
 window.updateTopBarUI = updateTopBarUI;
 window.switchTab = switchTab;
 window.renderGymUI = renderGymUI;
 window.startGymBattle = startGymBattle;
+window.nextTurnGymBattle = nextTurnGymBattle;
 window.renderPartyUI = renderPartyUI;
 window.openSquadModal = openSquadModal;
 window.closeSquadModal = closeSquadModal;
 window.selectPokeForSquad = selectPokeForSquad;
 window.removeFromSquad = removeFromSquad;
+window.openPokeDetailModal = openPokeDetailModal;
+window.closePokeDetailModal = closePokeDetailModal;
 window.renderMartUI = renderMartUI;
 window.buyMartItem = buyMartItem;
 window.renderDaycareUI = renderDaycareUI;
